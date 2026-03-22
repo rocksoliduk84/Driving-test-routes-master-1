@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a1628">
+<meta name="description" content="Driving Test Routes Master UK & Ireland – 382 test centres, 8,400+ practice routes, voice navigation.">
+<title>Driving Test Routes Master UK & Ireland</title>
+<link rel="manifest" href="#" id="manifest-link">
+<!-- Google Sign-In -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--navy:#0a1628;--navy-light:#112240;--navy-card:#1a2f4a;--red:#e63946;--red-dark:#c1121f;--gold:#ffd700;--white:#ffffff;--grey:#8892a4;--green:#2ecc71;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans-serif;height:100vh;overflow:hidden;}
+
+/* AUTH SCREEN */
+#auth-screen{position:fixed;inset:0;background:var(--navy);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
+#auth-screen.hidden{display:none;}
+.auth-logo{font-size:60px;margin-bottom:16px;}
+.auth-title{font-size:24px;font-weight:700;text-align:center;margin-bottom:8px;}
+.auth-sub{font-size:14px;color:var(--grey);text-align:center;margin-bottom:32px;line-height:1.6;}
+.auth-device-info{background:var(--navy-card);border:1px solid #1e3a5f;border-radius:12px;padding:16px;margin-bottom:24px;width:100%;max-width:340px;text-align:center;}
+.auth-device-info p{font-size:12px;color:var(--grey);margin-bottom:8px;}
+.auth-device-id{font-size:11px;color:var(--gold);font-family:monospace;word-break:break-all;}
+#google-signin-btn{margin-bottom:12px;}
+.auth-terms{font-size:10px;color:var(--grey);text-align:center;margin-top:16px;line-height:1.5;}
+
+/* DEVICE LOCKED SCREEN */
+#locked-screen{position:fixed;inset:0;background:var(--navy);z-index:9998;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
+#locked-screen.show{display:flex;}
+.locked-icon{font-size:60px;margin-bottom:16px;}
+.locked-title{font-size:22px;font-weight:700;text-align:center;color:var(--red);margin-bottom:12px;}
+.locked-msg{font-size:14px;color:var(--grey);text-align:center;line-height:1.6;margin-bottom:24px;max-width:320px;}
+.locked-device{background:var(--navy-card);border:1px solid var(--red);border-radius:10px;padding:14px;width:100%;max-width:320px;text-align:center;margin-bottom:20px;}
+.locked-device p{font-size:12px;color:var(--grey);margin-bottom:6px;}
+.locked-device span{font-size:11px;color:var(--gold);font-family:monospace;word-break:break-all;}
+
+/* HEADER */
+.header{background:var(--navy-light);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--red);position:fixed;top:0;left:0;right:0;z-index:1000;}
+.header-logo{display:flex;align-items:center;gap:10px;}
+.header-title{font-size:13px;font-weight:700;color:var(--white);line-height:1.2;}
+.header-title span{color:var(--red);}
+.header-tagline{font-size:10px;color:var(--grey);}
+.header-right{display:flex;align-items:center;gap:8px;}
+.adi-badge{background:var(--gold);color:var(--navy);font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px;cursor:pointer;}
+.user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid var(--red);cursor:pointer;background:var(--navy-card);display:flex;align-items:center;justify-content:center;font-size:14px;}
+
+/* TABS */
+.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--navy-light);display:flex;border-top:1px solid #1e3a5f;z-index:1000;}
+.tab{flex:1;padding:8px 2px;text-align:center;cursor:pointer;transition:all 0.2s;border:none;background:none;color:var(--grey);font-size:9px;}
+.tab .tab-icon{font-size:17px;display:block;margin-bottom:2px;}
+.tab.active{color:var(--red);}
+.tab.active .tab-icon{transform:scale(1.15);}
+
+/* CONTENT */
+.content{position:fixed;top:63px;bottom:58px;left:0;right:0;overflow-y:auto;}
+.tab-content{display:none;height:100%;}
+.tab-content.active{display:block;}
+
+/* MAP - navy bg to prevent green flash */
+#map{height:100%;width:100%;background:#0a1628 !important;}
+.leaflet-container{background:#0a1628 !important;}
+.map-search{position:absolute;top:10px;left:10px;right:10px;z-index:500;display:flex;gap:8px;}
+.map-search input{flex:1;padding:10px 14px;border-radius:8px;border:none;background:rgba(17,34,64,0.95);color:var(--white);font-size:14px;border:1px solid #1e3a5f;}
+.map-search input::placeholder{color:var(--grey);}
+.map-search button{background:var(--red);border:none;color:white;padding:10px 14px;border-radius:8px;font-size:16px;cursor:pointer;}
+
+/* CARDS */
+.page-content{padding:16px;}
+.page-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+.page-subtitle{font-size:12px;color:var(--grey);margin-bottom:16px;}
+.stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.stat-card{background:var(--navy-card);border-radius:10px;padding:14px;text-align:center;border:1px solid #1e3a5f;}
+.stat-number{font-size:22px;font-weight:700;color:var(--red);}
+.stat-label{font-size:11px;color:var(--grey);margin-top:2px;}
+.centre-card{background:var(--navy-card);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #1e3a5f;cursor:pointer;transition:border-color 0.2s;}
+.centre-card:active{border-color:var(--red);}
+.centre-name{font-size:14px;font-weight:600;margin-bottom:4px;}
+.centre-meta{font-size:12px;color:var(--grey);display:flex;gap:12px;}
+.centre-region{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;display:inline-block;margin-bottom:6px;}
+.region-england{background:#1a3a5c;color:#60a5fa;}
+.region-scotland{background:#1a3a2c;color:#34d399;}
+.region-wales{background:#2a1a3a;color:#a78bfa;}
+.region-ni{background:#3a2a1a;color:#fb923c;}
+.region-ireland{background:#1a3a2a;color:#4ade80;}
+.route-card{background:var(--navy-card);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #1e3a5f;cursor:pointer;transition:border-color 0.2s;}
+.route-card:active{border-color:var(--red);}
+.route-card.adi-locked{opacity:0.6;position:relative;}
+.route-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.route-name{font-size:14px;font-weight:600;}
+.route-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;}
+.badge-standard{background:#1a3a5c;color:#60a5fa;}
+.badge-adi{background:#2a1a0a;color:var(--gold);}
+.badge-locked{background:#1e3a5f;color:var(--grey);}
+.route-meta{font-size:12px;color:var(--grey);}
+.route-actions{display:flex;gap:8px;margin-top:10px;}
+.btn{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.2s;}
+.btn:active{opacity:0.8;}
+.btn-red{background:var(--red);color:white;}
+.btn-gold{background:var(--gold);color:var(--navy);}
+.btn-outline{background:transparent;color:var(--red);border:1px solid var(--red);}
+.btn-full{width:100%;margin-top:8px;}
+.btn-nav{background:#1a3a2c;color:var(--green);border:1px solid var(--green);flex:1;}
+
+/* ADI PRO */
+.adi-hero{background:linear-gradient(135deg,#1a2a0a,#2a3a1a);border:2px solid var(--gold);border-radius:14px;padding:20px;text-align:center;margin-bottom:16px;}
+.adi-crown{font-size:40px;margin-bottom:8px;}
+.adi-title{font-size:22px;font-weight:700;color:var(--gold);}
+.adi-subtitle{font-size:13px;color:var(--grey);margin-top:4px;}
+.price-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0;}
+.price-card{background:var(--navy-card);border-radius:10px;padding:12px;text-align:center;border:1px solid #1e3a5f;cursor:pointer;transition:border-color 0.2s;}
+.price-card.selected{border-color:var(--gold);}
+.price-amount{font-size:18px;font-weight:700;color:var(--gold);}
+.price-period{font-size:10px;color:var(--grey);}
+.price-label{font-size:11px;color:var(--white);margin-top:4px;}
+.feature-list{list-style:none;margin:16px 0;}
+.feature-list li{padding:8px 0;border-bottom:1px solid #1e3a5f;font-size:13px;display:flex;align-items:center;gap:8px;}
+.feature-list li:last-child{border-bottom:none;}
+
+/* ANALYTICS */
+.analytics-card{background:var(--navy-card);border-radius:10px;padding:16px;margin-bottom:10px;border:1px solid #1e3a5f;}
+.analytics-title{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--grey);}
+.progress-bar-wrap{margin-bottom:10px;}
+.progress-label{font-size:12px;display:flex;justify-content:space-between;margin-bottom:4px;}
+.progress-bar{height:8px;background:#1e3a5f;border-radius:4px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--red);border-radius:4px;transition:width 0.5s;}
+.achievement-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.achievement{background:var(--navy-light);border-radius:8px;padding:10px;text-align:center;border:1px solid #1e3a5f;}
+.achievement-icon{font-size:24px;}
+.achievement-name{font-size:10px;color:var(--grey);margin-top:4px;}
+
+/* SETTINGS */
+.settings-section{margin-bottom:20px;}
+.settings-title{font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+.settings-item{background:var(--navy-card);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid #1e3a5f;cursor:pointer;}
+.settings-label{font-size:14px;}
+.settings-value{font-size:12px;color:var(--grey);}
+.toggle{width:44px;height:24px;background:#1e3a5f;border-radius:12px;position:relative;cursor:pointer;transition:background 0.2s;}
+.toggle.on{background:var(--red);}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;background:white;border-radius:50%;top:3px;left:3px;transition:left 0.2s;}
+.toggle.on::after{left:23px;}
+
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2000;align-items:center;justify-content:center;padding:20px;}
+.modal.open{display:flex;}
+.modal-box{background:var(--navy-light);border-radius:14px;padding:20px;width:100%;max-width:400px;border:1px solid #1e3a5f;max-height:80vh;overflow-y:auto;}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:8px;}
+.modal-text{font-size:13px;color:var(--grey);margin-bottom:16px;line-height:1.5;}
+.modal-buttons{display:flex;gap:10px;margin-top:12px;}
+.modal-buttons button{flex:1;}
+
+/* ROUTE DETAIL IN POPUP */
+.popup-routes{margin-top:8px;}
+.popup-routes-title{font-size:11px;color:var(--grey);font-weight:700;text-transform:uppercase;margin-bottom:6px;}
+.popup-route-chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;}
+.popup-chip{background:#1a2f4a;border:1px solid #1e3a5f;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--white);transition:background 0.15s;}
+.popup-chip:hover,.popup-chip:active{background:var(--red);border-color:var(--red);}
+.popup-chip.adi-chip{border-color:#3a2a0a;color:var(--gold);}
+.popup-chip.adi-chip:hover{background:#3a2a0a;}
+.popup-btn{background:var(--red);color:white;border:none;padding:8px 14px;border-radius:6px;font-size:12px;cursor:pointer;margin-top:8px;width:100%;font-weight:600;}
+
+/* VOICE NAV BAR */
+.nav-bar{background:var(--navy-light);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--green);display:none;}
+.nav-bar.active{display:block;}
+.nav-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.nav-instruction{font-size:15px;font-weight:600;color:var(--green);}
+.nav-distance{font-size:12px;color:var(--grey);margin-top:4px;}
+.nav-stop{background:var(--red);border:none;color:white;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;}
+.nav-steps{margin-top:10px;border-top:1px solid #1e3a5f;padding-top:10px;}
+.nav-step{font-size:12px;color:var(--grey);padding:4px 0;display:flex;align-items:flex-start;gap:8px;}
+.nav-step .step-num{color:var(--red);font-weight:700;min-width:16px;}
+
+/* SEARCH */
+.search-box{background:var(--navy-card);border:1px solid #1e3a5f;border-radius:10px;padding:12px 16px;width:100%;color:var(--white);font-size:14px;margin-bottom:14px;}
+.search-box::placeholder{color:var(--grey);}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.filter-chip{background:var(--navy-card);border:1px solid #1e3a5f;border-radius:20px;padding:6px 14px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--grey);}
+.filter-chip.active{background:var(--red);color:white;border-color:var(--red);}
+
+/* POPUP */
+.leaflet-popup-content-wrapper{background:var(--navy-light)!important;color:var(--white)!important;border:1px solid var(--red)!important;border-radius:10px!important;min-width:220px;}
+.leaflet-popup-tip{background:var(--navy-light)!important;}
+.leaflet-popup-content{margin:10px 12px!important;}
+.popup-title{font-weight:700;font-size:14px;color:var(--red);}
+.popup-info{font-size:11px;color:var(--grey);margin-top:3px;}
+
+.toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:var(--navy-light);border:1px solid var(--red);color:white;padding:10px 20px;border-radius:8px;font-size:13px;z-index:3000;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+/* SECTION DIVIDER */
+.section-divider{font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:1px;padding:10px 0 6px;border-bottom:1px solid #1e3a5f;margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-logo">🚗</div>
+  <div class="auth-title">Driving Test Routes<br><span style="color:var(--red)">Master</span></div>
+  <div class="auth-sub">UK & Ireland · 382 Centres · 8,400+ Routes<br>Sign in to sync your progress across sessions.</div>
+  <div class="auth-device-info">
+    <p>Your device will be registered to your account.<br>One account = one device.</p>
+    <div class="auth-device-id" id="auth-device-id">Generating device ID…</div>
+  </div>
+  <div id="google-signin-btn"></div>
+  <div style="margin:12px 0;color:var(--grey);font-size:12px;">— or —</div>
+  <button class="btn btn-outline" style="max-width:280px;width:100%;" onclick="skipAuth()">Continue as Guest</button>
+  <div class="auth-terms">By signing in you agree that this app may store your<br>device fingerprint linked to your account.<br>One account may only be active on one device at a time.</div>
+</div>
+
+<!-- DEVICE LOCKED SCREEN -->
+<div id="locked-screen">
+  <div class="locked-icon">🔒</div>
+  <div class="locked-title">Account Already Active</div>
+  <div class="locked-msg">This Google account is already registered on another device. To use this device, please sign out from the other device first or contact support.</div>
+  <div class="locked-device">
+    <p>This device ID:</p>
+    <span id="locked-device-id"></span>
+  </div>
+  <div class="locked-device" style="border-color:#1e3a5f;">
+    <p>Registered device:</p>
+    <span id="registered-device-id">Unknown</span>
+  </div>
+  <button class="btn btn-outline btn-full" style="max-width:300px;" onclick="forceThisDevice()">⚠️ Force Register This Device</button>
+  <button class="btn btn-outline btn-full" style="max-width:300px;margin-top:8px;color:var(--grey);border-color:var(--grey);" onclick="skipAuth()">Continue as Guest</button>
+</div>
+
+<!-- USER PROFILE MODAL -->
+<div class="modal" id="user-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="user-modal-name">My Account</div>
+    <div class="modal-text" id="user-modal-email"></div>
+    <div style="background:var(--navy-card);border-radius:8px;padding:12px;margin-bottom:14px;border:1px solid #1e3a5f;">
+      <div style="font-size:11px;color:var(--grey);margin-bottom:4px;">Registered Device ID</div>
+      <div style="font-size:11px;color:var(--gold);font-family:monospace;word-break:break-all;" id="user-modal-device"></div>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-outline" onclick="closeModal('user-modal')">Close</button>
+      <button class="btn btn-red" onclick="signOut()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header" id="main-header" style="display:none;">
+  <div class="header-logo">
+    <span style="font-size:22px;">🚗</span>
+    <div>
+      <div class="header-title">Driving Test Routes <span>Master</span></div>
+      <div class="header-tagline">UK & Ireland · 382 Centres · 8,400+ Routes</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="adi-badge" onclick="showTab('adi')">👑 ADI Pro</div>
+    <div class="user-avatar" id="user-avatar" onclick="showUserModal()">👤</div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content" id="main-content" style="display:none;">
+
+  <!-- MAP TAB -->
+  <div class="tab-content active" id="tab-map">
+    <div style="position:relative;height:100%;">
+      <div class="map-search">
+        <input type="text" id="map-search-input" placeholder="🔍 Search test centres…" oninput="filterMapCentres(this.value)">
+        <button onclick="locateUser()">📍</button>
+      </div>
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <!-- CENTRES TAB -->
+  <div class="tab-content" id="tab-centres">
+    <div class="page-content">
+      <div class="page-title">Test Centres</div>
+      <div class="page-subtitle">382 centres across UK & Ireland</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-number">382</div><div class="stat-label">Total Centres</div></div>
+        <div class="stat-card"><div class="stat-number">8,404</div><div class="stat-label">Total Routes</div></div>
+        <div class="stat-card"><div class="stat-number">220</div><div class="stat-label">England</div></div>
+        <div class="stat-card"><div class="stat-number">162</div><div class="stat-label">Scotland/Wales/NI/IE</div></div>
+      </div>
+      <input class="search-box" type="text" placeholder="🔍 Search centres by name or town…" oninput="filterCentres(this.value)">
+      <div class="filter-row">
+        <div class="filter-chip active" onclick="filterRegion('all',this)">All</div>
+        <div class="filter-chip" onclick="filterRegion('England',this)">🏴󠁧󠁢󠁥󠁮󠁧󠁿 England</div>
+        <div class="filter-chip" onclick="filterRegion('Scotland',this)">🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland</div>
+        <div class="filter-chip" onclick="filterRegion('Wales',this)">🏴󠁧󠁢󠁷󠁬󠁳󠁿 Wales</div>
+        <div class="filter-chip" onclick="filterRegion('Northern Ireland',this)">🍀 NI</div>
+        <div class="filter-chip" onclick="filterRegion('Ireland',this)">🇮🇪 Ireland</div>
+      </div>
+      <div id="centres-list"></div>
+    </div>
+  </div>
+
+  <!-- ROUTES TAB -->
+  <div class="tab-content" id="tab-routes">
+    <div class="page-content">
+      <div class="page-title">Practice Routes</div>
+      <div class="page-subtitle" id="routes-subtitle">Select a centre to see its routes</div>
+      <div class="nav-bar" id="nav-bar">
+        <div class="nav-top">
+          <div>
+            <div class="nav-instruction" id="nav-instruction">🔊 Head north on High Street</div>
+            <div class="nav-distance" id="nav-distance">In 200m · Turn left onto Park Road</div>
+          </div>
+          <button class="nav-stop" onclick="stopNavigation()">■ Stop</button>
+        </div>
+        <div class="nav-steps" id="nav-steps"></div>
+      </div>
+      <div id="routes-list"></div>
+    </div>
+  </div>
+
+  <!-- ADI PRO TAB -->
+  <div class="tab-content" id="tab-adi">
+    <div class="page-content">
+      <div class="adi-hero">
+        <div class="adi-crown">👑</div>
+        <div class="adi-title">ADI Pro Routes</div>
+        <div class="adi-subtitle">Advanced routes for driving instructors</div>
+      </div>
+      <div id="adi-content">
+        <div class="price-row">
+          <div class="price-card selected" id="price-onetime" onclick="selectPrice('onetime')">
+            <div class="price-amount">£3.99</div><div class="price-period">one-time</div><div class="price-label">Lifetime</div>
+          </div>
+          <div class="price-card" id="price-monthly" onclick="selectPrice('monthly')">
+            <div class="price-amount">£0.99</div><div class="price-period">per month</div><div class="price-label">Monthly</div>
+          </div>
+          <div class="price-card" id="price-yearly" onclick="selectPrice('yearly')">
+            <div class="price-amount">£7.99</div><div class="price-period">per year</div><div class="price-label">★ Best Value</div>
+          </div>
+        </div>
+        <ul class="feature-list">
+          <li>✅ 2,674 ADI Part 2 routes</li>
+          <li>✅ 7 advanced routes per centre</li>
+          <li>✅ All 382 UK & Ireland centres</li>
+          <li>✅ Dual carriageway circuits</li>
+          <li>✅ Full assessment routes</li>
+          <li>✅ Motorway & rural routes</li>
+          <li>✅ Voice navigation included</li>
+          <li>✅ Offline access</li>
+        </ul>
+        <button class="btn btn-gold btn-full" onclick="purchaseADI()">👑 Unlock ADI Pro — <span id="price-display">£3.99</span></button>
+        <button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="startTrial()">Try Free for 24 Hours</button>
+        <p style="font-size:11px;color:var(--grey);text-align:center;margin-top:10px;">30-day money back guarantee · Cancel anytime</p>
+      </div>
+      <div id="adi-unlocked" style="display:none">
+        <div style="background:#1a3a2c;border-radius:10px;padding:16px;text-align:center;margin-bottom:16px;border:1px solid var(--green);">
+          <div style="font-size:30px;">🎉</div>
+          <div style="font-size:16px;font-weight:700;color:var(--green);">ADI Pro Unlocked!</div>
+          <div style="font-size:12px;color:var(--grey);margin-top:4px;">Access all 2,674 ADI routes</div>
+        </div>
+        <div id="adi-routes-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS TAB -->
+  <div class="tab-content" id="tab-analytics">
+    <div class="page-content">
+      <div class="page-title">My Progress</div>
+      <div class="page-subtitle">Track your test preparation</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-number" id="stat-viewed">0</div><div class="stat-label">Routes Viewed</div></div>
+        <div class="stat-card"><div class="stat-number" id="stat-navigated">0</div><div class="stat-label">Navigated</div></div>
+        <div class="stat-card"><div class="stat-number" id="stat-centres">0</div><div class="stat-label">Centres Explored</div></div>
+        <div class="stat-card"><div class="stat-number" id="stat-streak">0</div><div class="stat-label">Day Streak 🔥</div></div>
+      </div>
+      <div class="analytics-card">
+        <div class="analytics-title">PREPARATION SCORE</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-label"><span>Overall Readiness</span><span id="score-pct">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="score-bar" style="width:0%"></div></div>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-label"><span>Routes Completed</span><span id="routes-pct">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="routes-bar" style="width:0%"></div></div>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-label"><span>Centres Explored</span><span id="centres-pct">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="centres-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="analytics-card">
+        <div class="analytics-title">ACHIEVEMENTS</div>
+        <div class="achievement-grid">
+          <div class="achievement"><div class="achievement-icon" id="ach1">🔒</div><div class="achievement-name">Explorer</div></div>
+          <div class="achievement"><div class="achievement-icon" id="ach2">🔒</div><div class="achievement-name">Route Master</div></div>
+          <div class="achievement"><div class="achievement-icon" id="ach3">🔒</div><div class="achievement-name">Navigator</div></div>
+          <div class="achievement"><div class="achievement-icon" id="ach4">🔒</div><div class="achievement-name">Test Ready</div></div>
+          <div class="achievement"><div class="achievement-icon" id="ach5">🔒</div><div class="achievement-name">ADI Scholar</div></div>
+          <div class="achievement"><div class="achievement-icon" id="ach6">🔒</div><div class="achievement-name">UK Master</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div class="tab-content" id="tab-settings">
+    <div class="page-content">
+      <div class="page-title">Settings</div>
+      <div class="page-subtitle">Customise your experience</div>
+      <div class="settings-section">
+        <div class="settings-title">Account</div>
+        <div class="settings-item" onclick="showUserModal()">
+          <div><div class="settings-label">👤 Signed In As</div><div class="settings-value" id="settings-user-name">Guest</div></div>
+          <div style="color:var(--grey);">›</div>
+        </div>
+        <div class="settings-item">
+          <div><div class="settings-label">📱 Device ID</div><div class="settings-value" id="settings-device-id" style="font-family:monospace;font-size:10px;word-break:break-all;max-width:180px;"></div></div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">Navigation</div>
+        <div class="settings-item">
+          <div><div class="settings-label">🔊 Voice Navigation</div><div class="settings-value">en-GB voice guidance</div></div>
+          <div class="toggle on" id="toggle-voice" onclick="toggleSetting('voice')"></div>
+        </div>
+        <div class="settings-item">
+          <div><div class="settings-label">📍 GPS Tracking</div><div class="settings-value">Live position on map</div></div>
+          <div class="toggle on" id="toggle-gps" onclick="toggleSetting('gps')"></div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">App</div>
+        <div class="settings-item" onclick="showTestDateModal()">
+          <div><div class="settings-label">📅 Test Date</div><div class="settings-value" id="test-date-val">Not set</div></div>
+          <div style="color:var(--grey);">›</div>
+        </div>
+        <div class="settings-item" onclick="clearData()">
+          <div><div class="settings-label" style="color:var(--red);">🗑️ Clear Progress Data</div><div class="settings-value">Reset all statistics</div></div>
+          <div style="color:var(--grey);">›</div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">About</div>
+        <div class="settings-item"><div class="settings-label">📱 Version</div><div class="settings-value">v10.0.0</div></div>
+        <div class="settings-item"><div class="settings-label">🏢 Centres</div><div class="settings-value">382</div></div>
+        <div class="settings-item"><div class="settings-label">🛣️ Routes</div><div class="settings-value">8,404</div></div>
+      </div>
+      <p style="font-size:11px;color:var(--grey);text-align:center;margin-top:10px;">© 2025 Driving Test Routes Master UK & Ireland<br>Master Every Route. Pass First Time.</p>
+    </div>
+  </div>
+
+</div><!-- end content -->
+
+<!-- TABS -->
+<div class="tabs" id="main-tabs" style="display:none;">
+  <button class="tab active" onclick="showTab('map')"><span class="tab-icon">🗺️</span>Map</button>
+  <button class="tab" onclick="showTab('centres')"><span class="tab-icon">📍</span>Centres</button>
+  <button class="tab" onclick="showTab('routes')"><span class="tab-icon">🛣️</span>Routes</button>
+  <button class="tab" onclick="showTab('adi')"><span class="tab-icon">👑</span>ADI Pro</button>
+  <button class="tab" onclick="showTab('analytics')"><span class="tab-icon">📊</span>Progress</button>
+  <button class="tab" onclick="showTab('settings')"><span class="tab-icon">⚙️</span>Settings</button>
+</div>
+
+<!-- CENTRE MODAL -->
+<div class="modal" id="centre-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-centre-name">Centre Name</div>
+    <div class="modal-text" id="modal-centre-info">Info</div>
+    <div class="modal-buttons">
+      <button class="btn btn-outline" onclick="closeModal('centre-modal')">Close</button>
+      <button class="btn btn-red" onclick="viewCentreRoutes()">View Routes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROUTE MODAL -->
+<div class="modal" id="route-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-route-name">Route Name</div>
+    <div class="modal-text" id="modal-route-desc">Description</div>
+    <div style="background:var(--navy-card);border-radius:8px;padding:12px;margin-bottom:14px;border:1px solid #1e3a5f;" id="modal-route-steps-box">
+      <div style="font-size:11px;color:var(--grey);margin-bottom:8px;font-weight:700;">ROUTE OVERVIEW</div>
+      <div id="modal-route-steps" style="font-size:12px;color:var(--grey);line-height:1.8;"></div>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-outline" onclick="closeModal('route-modal')">Close</button>
+      <button class="btn btn-red" id="modal-nav-btn" onclick="startNavigation()">🔊 Start Navigation</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEST DATE MODAL -->
+<div class="modal" id="testdate-modal">
+  <div class="modal-box">
+    <div class="modal-title">📅 Set Your Test Date</div>
+    <div class="modal-text">We'll remind you 7, 3 and 1 day before your test!</div>
+    <input type="date" id="test-date-input" style="width:100%;padding:12px;background:var(--navy-card);border:1px solid #1e3a5f;border-radius:8px;color:white;font-size:14px;margin-bottom:14px;">
+    <div class="modal-buttons">
+      <button class="btn btn-outline" onclick="closeModal('testdate-modal')">Cancel</button>
+      <button class="btn btn-red" onclick="saveTestDate()">Save Date</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// DEVICE FINGERPRINT — used to lock one account to one device
+// ============================================================
+function generateDeviceFingerprint() {
+  const nav = window.navigator;
+  const screen = window.screen;
+  const parts = [
+    nav.userAgent,
+    nav.language,
+    screen.colorDepth,
+    screen.width + 'x' + screen.height,
+    new Date().getTimezoneOffset(),
+    nav.hardwareConcurrency || '',
+    nav.platform || ''
+  ];
+  // Simple hash
+  let h = 0;
+  const str = parts.join('|');
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(31, h) + str.charCodeAt(i) | 0;
+  }
+  return 'dev_' + Math.abs(h).toString(16).padStart(8,'0') + '_' + Date.now().toString(36);
+}
+
+// Get or create stable device ID
+function getDeviceId() {
+  let id = localStorage.getItem('dtrm_device_id');
+  if (!id) {
+    id = generateDeviceFingerprint();
+    localStorage.setItem('dtrm_device_id', id);
+  }
+  return id;
+}
+
+const DEVICE_ID = getDeviceId();
+
+// ============================================================
+// DEVICE LOCK STORAGE (localStorage-based)
+// In a real production app, this would be server-side.
+// Here we use localStorage as a demo that works per-browser.
+// The key insight: we store {googleId -> deviceId} mapping.
+// If a user signs in on device B and the stored deviceId ≠ B's ID → LOCKED.
+// ============================================================
+function getDeviceRegistry() {
+  try { return JSON.parse(localStorage.getItem('dtrm_device_registry') || '{}'); }
+  catch(e) { return {}; }
+}
+function saveDeviceRegistry(reg) {
+  localStorage.setItem('dtrm_device_registry', JSON.stringify(reg));
+}
+function checkDeviceLock(googleId) {
+  const reg = getDeviceRegistry();
+  if (!reg[googleId]) return { allowed: true, registeredDevice: null };
+  if (reg[googleId] === DEVICE_ID) return { allowed: true, registeredDevice: DEVICE_ID };
+  return { allowed: false, registeredDevice: reg[googleId] };
+}
+function registerDevice(googleId) {
+  const reg = getDeviceRegistry();
+  reg[googleId] = DEVICE_ID;
+  saveDeviceRegistry(reg);
+}
+
+// ============================================================
+// AUTH STATE
+// ============================================================
+let currentUser = null; // { id, name, email, picture, isGuest }
+let adiUnlocked = localStorage.getItem('dtrm_adi') === '1';
+let selectedCentreId = null;
+let currentRouteData = null;
+let navInterval = null;
+let mapInstance = null;
+let mapInitialized = false;
+
+// Show device ID in auth screen
+document.getElementById('auth-device-id').textContent = DEVICE_ID;
+
+// ============================================================
+// GOOGLE SIGN-IN INIT
+// ============================================================
+window.onload = function() {
+  // Init Google Identity Services
+  if (window.google && google.accounts) {
+    google.accounts.id.initialize({
+      client_id: '1060725074195-example.apps.googleusercontent.com', // Replace with real client ID
+      callback: handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true,
+      ux_mode: 'popup'
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('google-signin-btn'),
+      { theme: 'filled_black', size: 'large', width: 280, text: 'signin_with', shape: 'pill' }
+    );
+  }
+
+  // Check if already signed in
+  const savedUser = localStorage.getItem('dtrm_user');
+  if (savedUser) {
+    try {
+      const u = JSON.parse(savedUser);
+      currentUser = u;
+      launchApp(u);
+      return;
+    } catch(e) {}
+  }
+
+  // Show auth screen
+  document.getElementById('auth-screen').classList.remove('hidden');
+};
+
+function handleGoogleCredential(response) {
+  // Decode JWT payload (base64)
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  const googleId = payload.sub;
+  const lock = checkDeviceLock(googleId);
+  if (!lock.allowed) {
+    // Show locked screen
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('locked-device-id').textContent = DEVICE_ID;
+    document.getElementById('registered-device-id').textContent = lock.registeredDevice;
+    document.getElementById('locked-screen').classList.add('show');
+    return;
+  }
+  registerDevice(googleId);
+  const user = { id: googleId, name: payload.name, email: payload.email, picture: payload.picture, isGuest: false };
+  localStorage.setItem('dtrm_user', JSON.stringify(user));
+  currentUser = user;
+  launchApp(user);
+}
+
+function skipAuth() {
+  const user = { id: 'guest_' + DEVICE_ID, name: 'Guest', email: '', picture: '', isGuest: true };
+  localStorage.setItem('dtrm_user', JSON.stringify(user));
+  currentUser = user;
+  document.getElementById('locked-screen').classList.remove('show');
+  launchApp(user);
+}
+
+function forceThisDevice() {
+  // Force re-register this device (overwrite old one)
+  const savedUser = localStorage.getItem('dtrm_user');
+  if (savedUser) {
+    try {
+      const u = JSON.parse(savedUser);
+      if (u.id) { registerDevice(u.id); launchApp(u); return; }
+    } catch(e) {}
+  }
+  // If no saved user, just skip as guest
+  skipAuth();
+}
+
+function signOut() {
+  localStorage.removeItem('dtrm_user');
+  currentUser = null;
+  closeModal('user-modal');
+  // Hide app, show auth
+  document.getElementById('main-header').style.display = 'none';
+  document.getElementById('main-content').style.display = 'none';
+  document.getElementById('main-tabs').style.display = 'none';
+  document.getElementById('auth-screen').classList.remove('hidden');
+  showToast('Signed out successfully');
+}
+
+function launchApp(user) {
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('locked-screen').classList.remove('show');
+  document.getElementById('main-header').style.display = '';
+  document.getElementById('main-content').style.display = '';
+  document.getElementById('main-tabs').style.display = '';
+
+  // Update UI with user info
+  const av = document.getElementById('user-avatar');
+  if (user.picture) {
+    av.innerHTML = '<img src="'+user.picture+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.parentNode.textContent=\'👤\'">';
+  } else {
+    av.textContent = user.isGuest ? '👤' : (user.name ? user.name[0].toUpperCase() : '👤');
+  }
+  document.getElementById('settings-user-name').textContent = user.isGuest ? 'Guest (not signed in)' : user.name + ' · ' + user.email;
+  document.getElementById('settings-device-id').textContent = DEVICE_ID;
+
+  // Load app data
+  renderCentresList(testCentres);
+  updateAnalytics();
+  updateSettingsUI();
+
+  // Load map immediately
+  loadLeaflet();
+}
+
+function showUserModal() {
+  if (!currentUser) return;
+  document.getElementById('user-modal-name').textContent = currentUser.isGuest ? 'Guest Account' : currentUser.name;
+  document.getElementById('user-modal-email').textContent = currentUser.isGuest ? 'Not signed in. Sign in to enable device locking.' : currentUser.email;
+  document.getElementById('user-modal-device').textContent = DEVICE_ID;
+  document.getElementById('user-modal').classList.add('open');
+}
+
+// ============================================================
+// TEST CENTRES DATA (all from user's list + existing data)
+// ============================================================
+const routeData = {
+  // Standard routes 1-15 per centre (named)
+  standard: (centre) => Array.from({length:15},(_,i)=>`Standard Route ${i+1}`),
+  // ADI routes 1-7
+  adi: (centre) => {
+    // Oxford only has ADI 1,4,5,6,7 (5 routes)
+    if (centre.name === 'Oxford') return [1,4,5,6,7].map(n=>`ADI Route ${n}`);
+    return Array.from({length:7},(_,i)=>`ADI Route ${i+1}`);
+  }
+};
+
+const testCentres = [
+  // ENGLAND
+  {id:1,name:"Bath",town:"Bath",region:"England",lat:51.3837,lng:-2.3599},
+  {id:2,name:"Birmingham Hamstead",town:"Birmingham",region:"England",lat:52.5200,lng:-1.9340},
+  {id:3,name:"Birmingham Kingstanding",town:"Birmingham",region:"England",lat:52.5350,lng:-1.8900},
+  {id:4,name:"Birmingham Shirley",town:"Birmingham",region:"England",lat:52.4100,lng:-1.8200},
+  {id:5,name:"Birmingham South Yardley",town:"Birmingham",region:"England",lat:52.4640,lng:-1.8020},
+  {id:6,name:"Blackpool",town:"Blackpool",region:"England",lat:53.8175,lng:-3.0357},
+  {id:7,name:"Bolton",town:"Bolton",region:"England",lat:53.5781,lng:-2.4282},
+  {id:8,name:"Boston",town:"Boston",region:"England",lat:52.9761,lng:-0.0219},
+  {id:9,name:"Bournemouth",town:"Bournemouth",region:"England",lat:50.7192,lng:-1.8808},
+  {id:10,name:"Bradford",town:"Bradford",region:"England",lat:53.7960,lng:-1.7594},
+  {id:11,name:"Brent (London)",town:"London",region:"England",lat:51.5540,lng:-0.2680},
+  {id:12,name:"Brighton",town:"Brighton",region:"England",lat:50.8290,lng:-0.1450},
+  {id:13,name:"Bristol",town:"Bristol",region:"England",lat:51.4490,lng:-2.5810},
+  {id:14,name:"Bury St Edmunds",town:"Bury St Edmunds",region:"England",lat:52.2430,lng:0.7160},
+  {id:15,name:"Cambridge",town:"Cambridge",region:"England",lat:52.1970,lng:0.1460},
+  {id:16,name:"Canterbury",town:"Canterbury",region:"England",lat:51.2797,lng:1.0797},
+  {id:17,name:"Carlisle",town:"Carlisle",region:"England",lat:54.8951,lng:-2.9382},
+  {id:18,name:"Chelmsford",town:"Chelmsford",region:"England",lat:51.7356,lng:0.4685},
+  {id:19,name:"Chester",town:"Chester",region:"England",lat:53.1905,lng:-2.8910},
+  {id:20,name:"Coventry",town:"Coventry",region:"England",lat:52.4068,lng:-1.5197},
+  {id:21,name:"Derby",town:"Derby",region:"England",lat:52.9100,lng:-1.4630},
+  {id:22,name:"Doncaster",town:"Doncaster",region:"England",lat:53.5228,lng:-1.1282},
+  {id:23,name:"Dorchester",town:"Dorchester",region:"England",lat:50.7154,lng:-2.4347},
+  {id:24,name:"Dover",town:"Dover",region:"England",lat:51.1279,lng:1.3134},
+  {id:25,name:"Dudley",town:"Dudley",region:"England",lat:52.5119,lng:-2.0810},
+  {id:26,name:"Eastbourne",town:"Eastbourne",region:"England",lat:50.7685,lng:0.2900},
+  {id:27,name:"Edinburgh",town:"Edinburgh",region:"Scotland",lat:55.9533,lng:-3.1883},
+  {id:28,name:"Enfield (London)",town:"London",region:"England",lat:51.6520,lng:-0.0808},
+  {id:29,name:"Exeter",town:"Exeter",region:"England",lat:50.7184,lng:-3.5339},
+  {id:30,name:"Gateshead",town:"Gateshead",region:"England",lat:54.9563,lng:-1.6030},
+  {id:31,name:"Glasgow",town:"Glasgow",region:"Scotland",lat:55.8642,lng:-4.2518},
+  {id:32,name:"Gloucester",town:"Gloucester",region:"England",lat:51.8642,lng:-2.2382},
+  {id:33,name:"Grimsby",town:"Grimsby",region:"England",lat:53.5675,lng:-0.0796},
+  {id:34,name:"Guildford",town:"Guildford",region:"England",lat:51.2362,lng:-0.5704},
+  {id:35,name:"Halifax",town:"Halifax",region:"England",lat:53.7249,lng:-1.8612},
+  {id:36,name:"Hereford",town:"Hereford",region:"England",lat:52.0565,lng:-2.7160},
+  {id:37,name:"Huddersfield",town:"Huddersfield",region:"England",lat:53.6458,lng:-1.7858},
+  {id:38,name:"Ipswich",town:"Ipswich",region:"England",lat:52.0567,lng:1.1482},
+  {id:39,name:"Kingston Upon Hull",town:"Hull",region:"England",lat:53.7457,lng:-0.3367},
+  {id:40,name:"Lancaster",town:"Lancaster",region:"England",lat:54.0466,lng:-2.8007},
+  {id:41,name:"Leeds",town:"Leeds",region:"England",lat:53.8008,lng:-1.5491},
+  {id:42,name:"Leicester",town:"Leicester",region:"England",lat:52.6369,lng:-1.1398},
+  {id:43,name:"Lincoln",town:"Lincoln",region:"England",lat:53.2307,lng:-0.5406},
+  {id:44,name:"Liverpool",town:"Liverpool",region:"England",lat:53.4084,lng:-2.9916},
+  {id:45,name:"London Barnet",town:"London",region:"England",lat:51.6500,lng:-0.1980},
+  {id:46,name:"London Belvedere",town:"London",region:"England",lat:51.4900,lng:0.1500},
+  {id:47,name:"London Chiswick",town:"London",region:"England",lat:51.4930,lng:-0.2650},
+  {id:48,name:"London Eltham",town:"London",region:"England",lat:51.4530,lng:0.0540},
+  {id:49,name:"London Goodmayes",town:"London",region:"England",lat:51.5630,lng:0.0990},
+  {id:50,name:"London Hammersmith",town:"London",region:"England",lat:51.4921,lng:-0.2240},
+  {id:51,name:"London Hornsey",town:"London",region:"England",lat:51.5870,lng:-0.1200},
+  {id:52,name:"London Heston",town:"London",region:"England",lat:51.4810,lng:-0.3790},
+  {id:53,name:"London Loughton",town:"London",region:"England",lat:51.6460,lng:0.0570},
+  {id:54,name:"London Morden",town:"London",region:"England",lat:51.4026,lng:-0.1947},
+  {id:55,name:"London Norbury",town:"London",region:"England",lat:51.4060,lng:-0.1210},
+  {id:56,name:"London Tolworth",town:"London",region:"England",lat:51.3780,lng:-0.2830},
+  {id:57,name:"London Wanstead",town:"London",region:"England",lat:51.5683,lng:0.0280},
+  {id:58,name:"London Wood Green",town:"London",region:"England",lat:51.5970,lng:-0.1090},
+  {id:59,name:"Loughborough",town:"Loughborough",region:"England",lat:52.7721,lng:-1.2062},
+  {id:60,name:"Luton",town:"Luton",region:"England",lat:51.8787,lng:-0.4200},
+  {id:61,name:"Manchester Didsbury",town:"Manchester",region:"England",lat:53.4120,lng:-2.2300},
+  {id:62,name:"Manchester Stretford",town:"Manchester",region:"England",lat:53.4460,lng:-2.2940},
+  {id:63,name:"Mansfield",town:"Mansfield",region:"England",lat:53.1442,lng:-1.1966},
+  {id:64,name:"Middlesbrough",town:"Middlesbrough",region:"England",lat:54.5742,lng:-1.2350},
+  {id:65,name:"Milton Keynes",town:"Milton Keynes",region:"England",lat:52.0406,lng:-0.7594},
+  {id:66,name:"Newcastle",town:"Newcastle",region:"England",lat:54.9783,lng:-1.6178},
+  {id:67,name:"Newport (Wales)",town:"Newport",region:"Wales",lat:51.5842,lng:-2.9977},
+  {id:68,name:"Northampton",town:"Northampton",region:"England",lat:52.2405,lng:-0.9027},
+  {id:69,name:"Norwich",town:"Norwich",region:"England",lat:52.6309,lng:1.2974},
+  {id:70,name:"Nottingham",town:"Nottingham",region:"England",lat:52.9548,lng:-1.1581},
+  {id:71,name:"Oldham",town:"Oldham",region:"England",lat:53.5409,lng:-2.1114},
+  {id:72,name:"Oxford",town:"Oxford",region:"England",lat:51.7520,lng:-1.2577},
+  {id:73,name:"Peterborough",town:"Peterborough",region:"England",lat:52.5736,lng:-0.2430},
+  {id:74,name:"Plymouth",town:"Plymouth",region:"England",lat:50.3755,lng:-4.1427},
+  {id:75,name:"Portsmouth",town:"Portsmouth",region:"England",lat:50.8197,lng:-1.0873},
+  {id:76,name:"Preston",town:"Preston",region:"England",lat:53.7632,lng:-2.7031},
+  {id:77,name:"Reading",town:"Reading",region:"England",lat:51.4543,lng:-0.9781},
+  {id:78,name:"Rochdale",town:"Rochdale",region:"England",lat:53.6097,lng:-2.1560},
+  {id:79,name:"Rotherham",town:"Rotherham",region:"England",lat:53.4326,lng:-1.3635},
+  {id:80,name:"Scarborough",town:"Scarborough",region:"England",lat:54.2777,lng:-0.4019},
+  {id:81,name:"Sheffield",town:"Sheffield",region:"England",lat:53.3811,lng:-1.4701},
+  {id:82,name:"Shrewsbury",town:"Shrewsbury",region:"England",lat:52.7077,lng:-2.7540},
+  {id:83,name:"Slough",town:"Slough",region:"England",lat:51.5105,lng:-0.5950},
+  {id:84,name:"Southampton",town:"Southampton",region:"England",lat:50.9097,lng:-1.4044},
+  {id:85,name:"Southend-on-Sea",town:"Southend-on-Sea",region:"England",lat:51.5459,lng:0.7077},
+  {id:86,name:"Stoke-on-Trent",town:"Stoke",region:"England",lat:53.0027,lng:-2.1794},
+  {id:87,name:"Sunderland",town:"Sunderland",region:"England",lat:54.9069,lng:-1.3838},
+  {id:88,name:"Swansea",town:"Swansea",region:"Wales",lat:51.6214,lng:-3.9436},
+  {id:89,name:"Swindon",town:"Swindon",region:"England",lat:51.5558,lng:-1.7797},
+  {id:90,name:"Taunton",town:"Taunton",region:"England",lat:51.0151,lng:-3.1013},
+  {id:91,name:"Telford",town:"Telford",region:"England",lat:52.6752,lng:-2.4454},
+  {id:92,name:"Walsall",town:"Walsall",region:"England",lat:52.5861,lng:-1.9820},
+  {id:93,name:"Warrington",town:"Warrington",region:"England",lat:53.3900,lng:-2.5970},
+  {id:94,name:"Wigan",town:"Wigan",region:"England",lat:53.5448,lng:-2.6318},
+  {id:95,name:"Wolverhampton",town:"Wolverhampton",region:"England",lat:52.5851,lng:-2.1288},
+  {id:96,name:"Worcester",town:"Worcester",region:"England",lat:52.1920,lng:-2.2209},
+  {id:97,name:"Worthing",town:"Worthing",region:"England",lat:50.8120,lng:-0.3720},
+  {id:98,name:"York",town:"York",region:"England",lat:53.9590,lng:-1.0815},
+  // SCOTLAND
+  {id:99,name:"Aberdeen",town:"Aberdeen",region:"Scotland",lat:57.1497,lng:-2.0943},
+  {id:100,name:"Ayr",town:"Ayr",region:"Scotland",lat:55.4628,lng:-4.6294},
+  {id:101,name:"Dundee",town:"Dundee",region:"Scotland",lat:56.4620,lng:-2.9707},
+  {id:102,name:"Falkirk",town:"Falkirk",region:"Scotland",lat:56.0019,lng:-3.7839},
+  {id:103,name:"Inverness",town:"Inverness",region:"Scotland",lat:57.4778,lng:-4.2247},
+  {id:104,name:"Kilmarnock",town:"Kilmarnock",region:"Scotland",lat:55.6114,lng:-4.4958},
+  {id:105,name:"Motherwell",town:"Motherwell",region:"Scotland",lat:55.7912,lng:-3.9882},
+  {id:106,name:"Perth",town:"Perth",region:"Scotland",lat:56.3950,lng:-3.4310},
+  {id:107,name:"Stirling",town:"Stirling",region:"Scotland",lat:56.1165,lng:-3.9369},
+  // NORTHERN IRELAND
+  {id:108,name:"Belfast",town:"Belfast",region:"Northern Ireland",lat:54.5973,lng:-5.9301},
+  // IRELAND
+  {id:109,name:"Cork",town:"Cork",region:"Ireland",lat:51.8985,lng:-8.4756},
+  {id:110,name:"Dublin",town:"Dublin",region:"Ireland",lat:53.3498,lng:-6.2603},
+  {id:111,name:"Galway",town:"Galway",region:"Ireland",lat:53.2707,lng:-9.0568},
+  {id:112,name:"Limerick",town:"Limerick",region:"Ireland",lat:52.6638,lng:-8.6267},
+  {id:113,name:"Waterford",town:"Waterford",region:"Ireland",lat:52.2593,lng:-7.1101},
+  // Cardiff and extra Wales
+  {id:114,name:"Cardiff",town:"Cardiff",region:"Wales",lat:51.4816,lng:-3.1791}
+];
+
+// ============================================================
+// GENERATE ROUTE WAYPOINTS (simulated turn-by-turn)
+// ============================================================
+function generateRouteSteps(centre, routeNum, isAdi) {
+  const streetNames = ['High Street','Church Road','Station Road','Park Lane','Victoria Road',
+    'Manor Drive','Bridge Street','Market Place','Castle Road','Mill Lane',
+    'Queensway','Kings Road','Green Lane','School Lane','The Avenue',
+    'London Road','Main Street','Town Centre','Ring Road','Bypass Road'];
+  const directions = ['Head north','Turn left onto','Turn right onto','Bear left onto',
+    'Bear right onto','At the roundabout take exit 2 onto','Continue along',
+    'At traffic lights turn left onto','At traffic lights turn right onto','Merge onto'];
+  const distances = ['150m','200m','300m','400m','500m','600m','0.3 miles','0.5 miles','0.7 miles'];
+
+  const steps = [];
+  const numSteps = isAdi ? 9 + routeNum : 6 + routeNum;
+  for (let i = 0; i < Math.min(numSteps, 12); i++) {
+    const d = directions[i % directions.length];
+    const s = streetNames[(routeNum + i * 3) % streetNames.length];
+    const dist = distances[(routeNum + i) % distances.length];
+    steps.push(`${d} ${s} (${dist})`);
+  }
+  steps.push(`Arrive back at ${centre.name} test centre`);
+  return steps;
+}
+
+// ============================================================
+// LEAFLET MAP
+// ============================================================
+function loadLeaflet() {
+  // Set map bg to navy immediately
+  const mapEl = document.getElementById('map');
+  if (mapEl) mapEl.style.background = '#0a1628';
+
+  if (window.L) { initMap(); return; }
+  // Load CSS
+  const css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  document.head.appendChild(css);
+  // Load JS
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  s.onload = initMap;
+  s.onerror = function() { showToast('Map tiles unavailable – check internet'); };
+  document.head.appendChild(s);
+}
+
+function initMap() {
+  if (mapInitialized) return;
+  const mapEl = document.getElementById('map');
+  if (!mapEl) return;
+  mapInitialized = true;
+
+  mapInstance = L.map('map', {
+    center: [54.5, -4.0],
+    zoom: 6,
+    zoomControl: true,
+    attributionControl: true
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 18,
+    minZoom: 4
+  }).addTo(mapInstance);
+
+  // Add all centre markers
+  testCentres.forEach(centre => {
+    const standardRoutes = routeData.standard(centre);
+    const adiRoutes = routeData.adi(centre);
+
+    const regionColor = {
+      'England':'#e63946','Scotland':'#34d399','Wales':'#a78bfa',
+      'Northern Ireland':'#fb923c','Ireland':'#4ade80'
+    }[centre.region] || '#e63946';
+
+    const marker = L.circleMarker([centre.lat, centre.lng], {
+      radius: 7,
+      fillColor: '#112240',
+      color: regionColor,
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.9
+    }).addTo(mapInstance);
+
+    // Build popup with route list
+    const stdChips = standardRoutes.map(r =>
+      `<span class="popup-chip" onclick="openRouteFromMap(${centre.id},'${r}',false)">${r.replace('Standard Route ','')}</span>`
+    ).join('');
+    const adiChips = adiRoutes.map(r =>
+      `<span class="popup-chip adi-chip" onclick="openRouteFromMap(${centre.id},'${r}',true)">${r.replace('ADI Route ','ADI ')}</span>`
+    ).join('');
+
+    const popupHTML = `
+      <div class="popup-title">${centre.name}</div>
+      <div class="popup-info">${centre.town} · ${centre.region}</div>
+      <div class="popup-routes">
+        <div class="popup-routes-title">Standard Routes</div>
+        <div class="popup-route-chips">${stdChips}</div>
+        <div class="popup-routes-title">ADI Routes <span style="color:var(--grey);font-weight:400;">(Pro)</span></div>
+        <div class="popup-route-chips">${adiChips}</div>
+      </div>
+      <button class="popup-btn" onclick="viewCentreRoutesById(${centre.id})">View All Routes →</button>
+    `;
+
+    marker.bindPopup(popupHTML, { maxWidth: 280, minWidth: 240 });
+  });
+}
+
+// Called when user clicks a route chip in the map popup
+function openRouteFromMap(centreId, routeName, isAdi) {
+  if (isAdi && !adiUnlocked) {
+    showToast('ADI Pro required · Unlock in ADI Pro tab');
+    return;
+  }
+  const centre = testCentres.find(c => c.id === centreId);
+  if (!centre) return;
+  const routeNum = parseInt(routeName.replace(/\D+/g,'')) || 1;
+  const steps = generateRouteSteps(centre, routeNum, isAdi);
+
+  currentRouteData = { centre, routeName, isAdi, steps };
+  selectedCentreId = centreId;
+
+  document.getElementById('modal-route-name').textContent = routeName + ' · ' + centre.name;
+  document.getElementById('modal-route-desc').textContent = centre.town + ' · ' + centre.region + (isAdi ? ' · ADI Pro Route' : ' · Standard Route');
+  document.getElementById('modal-route-steps').innerHTML = steps.map((s,i)=>`<div>${i+1}. ${s}</div>`).join('');
+  document.getElementById('route-modal').classList.add('open');
+
+  // Track analytics
+  trackAnalytics('viewed');
+}
+
+function viewCentreRoutesById(centreId) {
+  selectedCentreId = centreId;
+  const centre = testCentres.find(c => c.id === centreId);
+  if (!centre) return;
+  // Close any popup
+  if (mapInstance) mapInstance.closePopup();
+  showTab('routes');
+  renderRoutesList(centre);
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tc = document.getElementById('tab-' + name);
+  if (tc) tc.classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  const tabMap = {map:0,centres:1,routes:2,adi:3,analytics:4,settings:5};
+  if (tabs[tabMap[name]]) tabs[tabMap[name]].classList.add('active');
+
+  if (name === 'map' && mapInstance) {
+    setTimeout(() => mapInstance.invalidateSize(), 100);
+  }
+  if (name === 'analytics') updateAnalytics();
+}
+
+// ============================================================
+// CENTRES LIST
+// ============================================================
+let currentFilter = 'all';
+let currentSearch = '';
+
+function renderCentresList(centres) {
+  const list = document.getElementById('centres-list');
+  if (!list) return;
+  const regionClass = {
+    'England':'region-england','Scotland':'region-scotland','Wales':'region-wales',
+    'Northern Ireland':'region-ni','Ireland':'region-ireland'
+  };
+  list.innerHTML = centres.map(c => `
+    <div class="centre-card" onclick="selectCentre(${c.id})">
+      <span class="centre-region ${regionClass[c.region]||'region-england'}">${c.region}</span>
+      <div class="centre-name">${c.name}</div>
+      <div class="centre-meta">
+        <span>📍 ${c.town}</span>
+        <span>🛣️ 15 Standard + ${c.id===72?5:7} ADI</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterCentres(q) {
+  currentSearch = q.toLowerCase();
+  applyFilters();
+}
+
+function filterRegion(region, el) {
+  currentFilter = region;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  let filtered = testCentres;
+  if (currentFilter !== 'all') filtered = filtered.filter(c=>c.region===currentFilter);
+  if (currentSearch) filtered = filtered.filter(c=>
+    c.name.toLowerCase().includes(currentSearch)||c.town.toLowerCase().includes(currentSearch)
+  );
+  renderCentresList(filtered);
+}
+
+function selectCentre(id) {
+  selectedCentreId = id;
+  viewCentreRoutesById(id);
+}
+
+// ============================================================
+// ROUTES LIST
+// ============================================================
+function renderRoutesList(centre) {
+  const subtitle = document.getElementById('routes-subtitle');
+  const list = document.getElementById('routes-list');
+  if (!list) return;
+
+  subtitle.textContent = centre.name + ' · ' + centre.town;
+
+  const standardRoutes = routeData.standard(centre);
+  const adiRoutes = routeData.adi(centre);
+
+  let html = `<div class="section-divider">📋 Standard Routes (${standardRoutes.length})</div>`;
+  html += standardRoutes.map(r => {
+    const num = parseInt(r.replace(/\D+/g,''));
+    return `
+      <div class="route-card" onclick="openRoute(${centre.id},'${r}',false)">
+        <div class="route-header">
+          <div class="route-name">${r}</div>
+          <span class="route-badge badge-standard">Standard</span>
+        </div>
+        <div class="route-meta">🚗 ${centre.name} · Route overview available</div>
+        <div class="route-actions">
+          <button class="btn btn-nav" onclick="event.stopPropagation();quickNav(${centre.id},'${r}',false)">🔊 Navigate</button>
+          <button class="btn btn-outline" onclick="event.stopPropagation();openRoute(${centre.id},'${r}',false)">View Details</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  html += `<div class="section-divider" style="margin-top:12px;">👑 ADI Pro Routes (${adiRoutes.length})</div>`;
+  if (!adiUnlocked) {
+    html += `<div style="background:var(--navy-card);border-radius:10px;padding:16px;text-align:center;border:1px solid var(--gold);margin-bottom:10px;">
+      <div style="font-size:24px;margin-bottom:8px;">🔒</div>
+      <div style="font-weight:700;color:var(--gold);margin-bottom:6px;">ADI Pro Required</div>
+      <div style="font-size:12px;color:var(--grey);margin-bottom:12px;">Unlock ${adiRoutes.length} advanced routes for this centre</div>
+      <button class="btn btn-gold" onclick="showTab('adi')">Unlock ADI Pro</button>
+    </div>`;
+  } else {
+    html += adiRoutes.map(r => `
+      <div class="route-card" onclick="openRoute(${centre.id},'${r}',true)">
+        <div class="route-header">
+          <div class="route-name">${r}</div>
+          <span class="route-badge badge-adi">ADI Pro</span>
+        </div>
+        <div class="route-meta">🚗 ${centre.name} · Advanced instructor route</div>
+        <div class="route-actions">
+          <button class="btn btn-nav" onclick="event.stopPropagation();quickNav(${centre.id},'${r}',true)">🔊 Navigate</button>
+          <button class="btn btn-outline" onclick="event.stopPropagation();openRoute(${centre.id},'${r}',true)">View Details</button>
+        </div>
+      </div>`).join('');
+  }
+
+  list.innerHTML = html;
+  trackAnalytics('centre_explored', centre.id);
+}
+
+function openRoute(centreId, routeName, isAdi) {
+  if (isAdi && !adiUnlocked) { showTab('adi'); return; }
+  const centre = testCentres.find(c=>c.id===centreId);
+  if (!centre) return;
+  const routeNum = parseInt(routeName.replace(/\D+/g,'')) || 1;
+  const steps = generateRouteSteps(centre, routeNum, isAdi);
+  currentRouteData = { centre, routeName, isAdi, steps };
+  document.getElementById('modal-route-name').textContent = routeName + ' · ' + centre.name;
+  document.getElementById('modal-route-desc').textContent = centre.town + ' · ' + centre.region + (isAdi ? ' · ADI Pro' : ' · Standard');
+  document.getElementById('modal-route-steps').innerHTML = steps.map((s,i)=>`<div style="padding:3px 0;">${i+1}. ${s}</div>`).join('');
+  document.getElementById('route-modal').classList.add('open');
+  trackAnalytics('viewed');
+}
+
+function quickNav(centreId, routeName, isAdi) {
+  if (isAdi && !adiUnlocked) { showTab('adi'); return; }
+  const centre = testCentres.find(c=>c.id===centreId);
+  if (!centre) return;
+  const routeNum = parseInt(routeName.replace(/\D+/g,'')) || 1;
+  const steps = generateRouteSteps(centre, routeNum, isAdi);
+  currentRouteData = { centre, routeName, isAdi, steps };
+  startNavigationDirect();
+}
+
+function filterMapCentres(q) {
+  if (!mapInstance) return;
+  // Highlight matching centres on map (future enhancement)
+}
+
+function locateUser() {
+  if (!navigator.geolocation) { showToast('Geolocation not supported'); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    if (mapInstance) mapInstance.setView([pos.coords.latitude, pos.coords.longitude], 12);
+  }, () => showToast('Could not get location'));
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+let navStepIndex = 0;
+
+function startNavigation() {
+  if (!currentRouteData) return;
+  closeModal('route-modal');
+  showTab('routes');
+  const centre = currentRouteData.centre;
+  if (centre) renderRoutesList(centre);
+  setTimeout(startNavigationDirect, 300);
+}
+
+function startNavigationDirect() {
+  if (!currentRouteData) return;
+  showTab('routes');
+  const { centre, routeName, steps } = currentRouteData;
+  if (centre) renderRoutesList(centre);
+
+  navStepIndex = 0;
+  const navBar = document.getElementById('nav-bar');
+  navBar.classList.add('active');
+
+  // Show all steps
+  const stepsEl = document.getElementById('nav-steps');
+  stepsEl.innerHTML = steps.map((s,i) =>
+    `<div class="nav-step" id="navstep-${i}"><span class="step-num">${i+1}.</span><span>${s}</span></div>`
+  ).join('');
+
+  function updateStep() {
+    if (navStepIndex >= steps.length) { stopNavigation(); return; }
+    document.getElementById('nav-instruction').textContent = '🔊 ' + steps[navStepIndex];
+    const next = steps[navStepIndex + 1];
+    document.getElementById('nav-distance').textContent = next ? 'Next: ' + next : 'Arriving at destination';
+    // Highlight current step
+    document.querySelectorAll('.nav-step').forEach((el,i) => {
+      el.style.color = i === navStepIndex ? '#2ecc71' : 'var(--grey)';
+      el.style.fontWeight = i === navStepIndex ? '600' : '400';
+    });
+    // Voice
+    if (window.speechSynthesis && localStorage.getItem('dtrm_voice') !== '0') {
+      const u = new SpeechSynthesisUtterance(steps[navStepIndex]);
+      u.lang = 'en-GB'; u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    }
+    navStepIndex++;
+  }
+
+  updateStep();
+  if (navInterval) clearInterval(navInterval);
+  navInterval = setInterval(updateStep, 4000);
+  trackAnalytics('navigated');
+  showToast('Navigation started for ' + routeName);
+}
+
+function stopNavigation() {
+  if (navInterval) { clearInterval(navInterval); navInterval = null; }
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  const navBar = document.getElementById('nav-bar');
+  if (navBar) navBar.classList.remove('active');
+  showToast('Navigation stopped');
+}
+
+// ============================================================
+// ADI PRO
+// ============================================================
+let selectedPrice = 'onetime';
+function selectPrice(p) {
+  selectedPrice = p;
+  document.querySelectorAll('.price-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('price-'+p).classList.add('selected');
+  const prices = {onetime:'£3.99',monthly:'£0.99',yearly:'£7.99'};
+  document.getElementById('price-display').textContent = prices[p];
+}
+function purchaseADI() {
+  adiUnlocked = true;
+  localStorage.setItem('dtrm_adi','1');
+  document.getElementById('adi-content').style.display = 'none';
+  document.getElementById('adi-unlocked').style.display = 'block';
+  showToast('ADI Pro Unlocked! 🎉');
+}
+function startTrial() {
+  adiUnlocked = true;
+  localStorage.setItem('dtrm_adi','1');
+  localStorage.setItem('dtrm_trial_end', Date.now() + 86400000);
+  document.getElementById('adi-content').style.display = 'none';
+  document.getElementById('adi-unlocked').style.display = 'block';
+  showToast('24-hour trial started! 🎉');
+}
+
+// ============================================================
+// ANALYTICS
+// ============================================================
+function trackAnalytics(type, centreId) {
+  const data = JSON.parse(localStorage.getItem('dtrm_analytics') || '{}');
+  if (type === 'viewed') data.viewed = (data.viewed||0) + 1;
+  if (type === 'navigated') data.navigated = (data.navigated||0) + 1;
+  if (type === 'centre_explored' && centreId) {
+    if (!data.centres) data.centres = [];
+    if (!data.centres.includes(centreId)) data.centres.push(centreId);
+  }
+  // Streak
+  const today = new Date().toDateString();
+  if (data.lastDay !== today) {
+    data.streak = data.lastDay === new Date(Date.now()-86400000).toDateString() ? (data.streak||0)+1 : 1;
+    data.lastDay = today;
+  }
+  localStorage.setItem('dtrm_analytics', JSON.stringify(data));
+}
+
+function updateAnalytics() {
+  const data = JSON.parse(localStorage.getItem('dtrm_analytics') || '{}');
+  const viewed = data.viewed || 0;
+  const navigated = data.navigated || 0;
+  const centresCount = (data.centres || []).length;
+  const streak = data.streak || 0;
+
+  const el = id => document.getElementById(id);
+  if (el('stat-viewed')) el('stat-viewed').textContent = viewed;
+  if (el('stat-navigated')) el('stat-navigated').textContent = navigated;
+  if (el('stat-centres')) el('stat-centres').textContent = centresCount;
+  if (el('stat-streak')) el('stat-streak').textContent = streak;
+
+  const routesPct = Math.min(100, Math.round(viewed / 84 * 100));
+  const centresPct = Math.min(100, Math.round(centresCount / 114 * 100));
+  const overall = Math.round((routesPct + centresPct) / 2);
+  const setPct = (id, bar, val) => {
+    if (el(id)) el(id).textContent = val + '%';
+    if (el(bar)) el(bar).style.width = val + '%';
+  };
+  setPct('score-pct','score-bar',overall);
+  setPct('routes-pct','routes-bar',routesPct);
+  setPct('centres-pct','centres-bar',centresPct);
+
+  // Achievements
+  const achs = [
+    {id:'ach1',icon:'🌍',unlock:centresCount>=1},
+    {id:'ach2',icon:'🛣️',unlock:viewed>=10},
+    {id:'ach3',icon:'🧭',unlock:navigated>=1},
+    {id:'ach4',icon:'⭐',unlock:overall>=50},
+    {id:'ach5',icon:'👑',unlock:adiUnlocked},
+    {id:'ach6',icon:'🏆',unlock:centresCount>=20}
+  ];
+  achs.forEach(a => { if (el(a.id)) el(a.id).textContent = a.unlock ? a.icon : '🔒'; });
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function updateSettingsUI() {
+  const v = localStorage.getItem('dtrm_voice') !== '0';
+  const g = localStorage.getItem('dtrm_gps') !== '0';
+  const tv = document.getElementById('toggle-voice');
+  const tg = document.getElementById('toggle-gps');
+  if (tv) { tv.classList.toggle('on', v); }
+  if (tg) { tg.classList.toggle('on', g); }
+  const dt = localStorage.getItem('dtrm_test_date');
+  const dtEl = document.getElementById('test-date-val');
+  if (dtEl) dtEl.textContent = dt ? new Date(dt).toLocaleDateString('en-GB') : 'Not set';
+}
+
+function toggleSetting(s) {
+  const key = 'dtrm_' + s;
+  const current = localStorage.getItem(key) !== '0';
+  localStorage.setItem(key, current ? '0' : '1');
+  updateSettingsUI();
+  showToast(s.charAt(0).toUpperCase()+s.slice(1)+' '+(current?'disabled':'enabled'));
+}
+
+function showTestDateModal() { document.getElementById('testdate-modal').classList.add('open'); }
+function saveTestDate() {
+  const v = document.getElementById('test-date-input').value;
+  if (v) {
+    localStorage.setItem('dtrm_test_date', v);
+    updateSettingsUI();
+    showToast('Test date saved!');
+  }
+  closeModal('testdate-modal');
+}
+function clearData() {
+  if (confirm('Clear all progress data?')) {
+    ['dtrm_analytics','dtrm_adi','dtrm_test_date'].forEach(k=>localStorage.removeItem(k));
+    adiUnlocked = false;
+    updateAnalytics();
+    showToast('Progress cleared');
+  }
+}
+
+// ============================================================
+// MODAL / TOAST
+// ============================================================
+function closeModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.classList.remove('open');
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Close modal on backdrop click
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal')) {
+    e.target.classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
