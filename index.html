@@ -190,6 +190,111 @@ body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans
 
 /* SECTION DIVIDER */
 .section-divider{font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:1px;padding:10px 0 6px;border-bottom:1px solid #1e3a5f;margin-bottom:10px;}
+
+  /* Navigation Modal */
+  #nav-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #0a1628;
+    z-index: 9999;
+    flex-direction: column;
+  }
+  #nav-modal.open { display: flex; }
+  #nav-header {
+    background: #112240;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #1e3a5f;
+    flex-shrink: 0;
+  }
+  #nav-route-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    flex: 1;
+  }
+  #nav-phase-label {
+    font-size: 11px;
+    color: #64ffda;
+    font-weight: 600;
+  }
+  #nav-map {
+    flex: 1;
+    min-height: 0;
+  }
+  #nav-bottom {
+    background: #112240;
+    border-top: 1px solid #1e3a5f;
+    padding: 12px 16px;
+    flex-shrink: 0;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  #nav-instruction {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ccd6f6;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+  #nav-step-counter {
+    font-size: 11px;
+    color: #8892b0;
+    margin-bottom: 8px;
+  }
+  #nav-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .nav-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: 1;
+    min-width: 80px;
+  }
+  .nav-btn-prev { background: #1e3a5f; color: #ccd6f6; }
+  .nav-btn-next { background: #64ffda; color: #0a1628; }
+  .nav-btn-stop { background: #e63946; color: #fff; }
+  .nav-btn-begin { background: #34d399; color: #0a1628; font-size: 14px; padding: 12px; width: 100%; }
+  #nav-steps-list {
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .nav-step {
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #8892b0;
+    margin-bottom: 3px;
+    line-height: 1.4;
+  }
+  .nav-step-active {
+    background: #1e3a5f;
+    color: #64ffda;
+    font-weight: 700;
+  }
+  .nav-step-done {
+    color: #3d4f6b;
+    text-decoration: line-through;
+  }
+  .nav-step-dest {
+    color: #e63946;
+    font-weight: 600;
+  }
+  #nav-begin-btn {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
 </style>
 </head>
 <body>
@@ -438,7 +543,7 @@ body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans
       </div>
       <div class="settings-section">
         <div class="settings-title">About</div>
-        <div class="settings-item"><div class="settings-label">📱 Version</div><div class="settings-value">v10.0.0</div></div>
+        <div class="settings-item"><div class="settings-label">📱 Version</div><div class="settings-value">v11.0.0</div></div>
         <div class="settings-item"><div class="settings-label">🏢 Centres</div><div class="settings-value">382</div></div>
         <div class="settings-item"><div class="settings-label">🛣️ Routes</div><div class="settings-value">8,404</div></div>
       </div>
@@ -481,7 +586,7 @@ body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans
     </div>
     <div class="modal-buttons">
       <button class="btn btn-outline" onclick="closeModal('route-modal')">Close</button>
-      <button class="btn btn-red" id="modal-nav-btn" onclick="startNavigation()">🔊 Start Navigation</button>
+      <button class="btn btn-red" id="modal-nav-btn" onclick="openRealNavigation(currentRouteData&&currentRouteData.centre?currentRouteData.centre.id:1,currentRouteData?parseInt(currentRouteData.routeName.replace(/\D+/g,''))||1:1,currentRouteData&&currentRouteData.isAdi)">🗺️ Start Real Navigation</button>
     </div>
   </div>
 </div>
@@ -703,300 +808,619 @@ function showUserModal() {
 // ============================================================
 // TEST CENTRES DATA (all from user's list + existing data)
 // ============================================================
+
+  <!-- REAL MAP NAVIGATION MODAL -->
+  <div id="nav-modal">
+    <div id="nav-header">
+      <div>
+        <div id="nav-route-title">Navigation</div>
+        <div id="nav-phase-label">Phase 1: Going to Test Centre</div>
+      </div>
+      <button class="nav-btn nav-btn-stop" onclick="stopNavigation()" style="flex:none;padding:8px 14px;">✕ Stop</button>
+    </div>
+    <div id="nav-map"></div>
+    <div id="nav-bottom">
+      <div id="nav-instruction">Getting your location...</div>
+      <div id="nav-step-counter">Step 0 / 0</div>
+      <button id="nav-begin-btn" class="nav-btn nav-btn-begin" onclick="beginTestRoute()">
+        🚗 I'm at the Test Centre — Start Route
+      </button>
+      <div id="nav-controls" style="display:none;">
+        <button class="nav-btn nav-btn-prev" onclick="prevNavStep()">◀ Prev</button>
+        <button class="nav-btn nav-btn-next" onclick="nextNavStep()">Next ▶</button>
+        <button class="nav-btn nav-btn-stop" onclick="stopNavigation()">■ Stop</button>
+      </div>
+      <div id="nav-steps-list"></div>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// ROUTE DATA
+// ============================================================
 const routeData = {
-  // Standard routes 1-15 per centre (named)
-  standard: (centre) => Array.from({length:15},(_,i)=>`Standard Route ${i+1}`),
-  // ADI routes 1-7
-  adi: (centre) => {
-    // Oxford only has ADI 1,4,5,6,7 (5 routes)
-    if (centre.name === 'Oxford') return [1,4,5,6,7].map(n=>`ADI Route ${n}`);
-    return Array.from({length:7},(_,i)=>`ADI Route ${i+1}`);
-  }
+  standard: (centre) => Array.from({length:15}, (_, i) => `Standard Route ${i+1}`),
+  adi: (centre) => Array.from({length:7}, (_, i) => `ADI Route ${i+1}`)
 };
 
 const testCentres = [
-  // ENGLAND
-  {id:1,name:"Bath",town:"Bath",region:"England",lat:51.3837,lng:-2.3599},
-  {id:2,name:"Birmingham Hamstead",town:"Birmingham",region:"England",lat:52.5200,lng:-1.9340},
-  {id:3,name:"Birmingham Kingstanding",town:"Birmingham",region:"England",lat:52.5350,lng:-1.8900},
-  {id:4,name:"Birmingham Shirley",town:"Birmingham",region:"England",lat:52.4100,lng:-1.8200},
-  {id:5,name:"Birmingham South Yardley",town:"Birmingham",region:"England",lat:52.4640,lng:-1.8020},
-  {id:6,name:"Blackpool",town:"Blackpool",region:"England",lat:53.8175,lng:-3.0357},
-  {id:7,name:"Bolton",town:"Bolton",region:"England",lat:53.5781,lng:-2.4282},
-  {id:8,name:"Boston",town:"Boston",region:"England",lat:52.9761,lng:-0.0219},
-  {id:9,name:"Bournemouth",town:"Bournemouth",region:"England",lat:50.7192,lng:-1.8808},
-  {id:10,name:"Bradford",town:"Bradford",region:"England",lat:53.7960,lng:-1.7594},
-  {id:11,name:"Brent (London)",town:"London",region:"England",lat:51.5540,lng:-0.2680},
-  {id:12,name:"Brighton",town:"Brighton",region:"England",lat:50.8290,lng:-0.1450},
-  {id:13,name:"Bristol",town:"Bristol",region:"England",lat:51.4490,lng:-2.5810},
-  {id:14,name:"Bury St Edmunds",town:"Bury St Edmunds",region:"England",lat:52.2430,lng:0.7160},
-  {id:15,name:"Cambridge",town:"Cambridge",region:"England",lat:52.1970,lng:0.1460},
-  {id:16,name:"Canterbury",town:"Canterbury",region:"England",lat:51.2797,lng:1.0797},
-  {id:17,name:"Carlisle",town:"Carlisle",region:"England",lat:54.8951,lng:-2.9382},
-  {id:18,name:"Chelmsford",town:"Chelmsford",region:"England",lat:51.7356,lng:0.4685},
-  {id:19,name:"Chester",town:"Chester",region:"England",lat:53.1905,lng:-2.8910},
-  {id:20,name:"Coventry",town:"Coventry",region:"England",lat:52.4068,lng:-1.5197},
-  {id:21,name:"Derby",town:"Derby",region:"England",lat:52.9100,lng:-1.4630},
-  {id:22,name:"Doncaster",town:"Doncaster",region:"England",lat:53.5228,lng:-1.1282},
-  {id:23,name:"Dorchester",town:"Dorchester",region:"England",lat:50.7154,lng:-2.4347},
-  {id:24,name:"Dover",town:"Dover",region:"England",lat:51.1279,lng:1.3134},
-  {id:25,name:"Dudley",town:"Dudley",region:"England",lat:52.5119,lng:-2.0810},
-  {id:26,name:"Eastbourne",town:"Eastbourne",region:"England",lat:50.7685,lng:0.2900},
-  {id:27,name:"Edinburgh",town:"Edinburgh",region:"Scotland",lat:55.9533,lng:-3.1883},
-  {id:28,name:"Enfield (London)",town:"London",region:"England",lat:51.6520,lng:-0.0808},
-  {id:29,name:"Exeter",town:"Exeter",region:"England",lat:50.7184,lng:-3.5339},
-  {id:30,name:"Gateshead",town:"Gateshead",region:"England",lat:54.9563,lng:-1.6030},
-  {id:31,name:"Glasgow",town:"Glasgow",region:"Scotland",lat:55.8642,lng:-4.2518},
-  {id:32,name:"Gloucester",town:"Gloucester",region:"England",lat:51.8642,lng:-2.2382},
-  {id:33,name:"Grimsby",town:"Grimsby",region:"England",lat:53.5675,lng:-0.0796},
-  {id:34,name:"Guildford",town:"Guildford",region:"England",lat:51.2362,lng:-0.5704},
-  {id:35,name:"Halifax",town:"Halifax",region:"England",lat:53.7249,lng:-1.8612},
-  {id:36,name:"Hereford",town:"Hereford",region:"England",lat:52.0565,lng:-2.7160},
-  {id:37,name:"Huddersfield",town:"Huddersfield",region:"England",lat:53.6458,lng:-1.7858},
-  {id:38,name:"Ipswich",town:"Ipswich",region:"England",lat:52.0567,lng:1.1482},
-  {id:39,name:"Kingston Upon Hull",town:"Hull",region:"England",lat:53.7457,lng:-0.3367},
-  {id:40,name:"Lancaster",town:"Lancaster",region:"England",lat:54.0466,lng:-2.8007},
-  {id:41,name:"Leeds",town:"Leeds",region:"England",lat:53.8008,lng:-1.5491},
-  {id:42,name:"Leicester",town:"Leicester",region:"England",lat:52.6369,lng:-1.1398},
-  {id:43,name:"Lincoln",town:"Lincoln",region:"England",lat:53.2307,lng:-0.5406},
-  {id:44,name:"Liverpool",town:"Liverpool",region:"England",lat:53.4084,lng:-2.9916},
-  {id:45,name:"London Barnet",town:"London",region:"England",lat:51.6500,lng:-0.1980},
-  {id:46,name:"London Belvedere",town:"London",region:"England",lat:51.4900,lng:0.1500},
-  {id:47,name:"London Chiswick",town:"London",region:"England",lat:51.4930,lng:-0.2650},
-  {id:48,name:"London Eltham",town:"London",region:"England",lat:51.4530,lng:0.0540},
-  {id:49,name:"London Goodmayes",town:"London",region:"England",lat:51.5630,lng:0.0990},
-  {id:50,name:"London Hammersmith",town:"London",region:"England",lat:51.4921,lng:-0.2240},
-  {id:51,name:"London Hornsey",town:"London",region:"England",lat:51.5870,lng:-0.1200},
-  {id:52,name:"London Heston",town:"London",region:"England",lat:51.4810,lng:-0.3790},
-  {id:53,name:"London Loughton",town:"London",region:"England",lat:51.6460,lng:0.0570},
-  {id:54,name:"London Morden",town:"London",region:"England",lat:51.4026,lng:-0.1947},
-  {id:55,name:"London Norbury",town:"London",region:"England",lat:51.4060,lng:-0.1210},
-  {id:56,name:"London Tolworth",town:"London",region:"England",lat:51.3780,lng:-0.2830},
-  {id:57,name:"London Wanstead",town:"London",region:"England",lat:51.5683,lng:0.0280},
-  {id:58,name:"London Wood Green",town:"London",region:"England",lat:51.5970,lng:-0.1090},
-  {id:59,name:"Loughborough",town:"Loughborough",region:"England",lat:52.7721,lng:-1.2062},
-  {id:60,name:"Luton",town:"Luton",region:"England",lat:51.8787,lng:-0.4200},
-  {id:61,name:"Manchester Didsbury",town:"Manchester",region:"England",lat:53.4120,lng:-2.2300},
-  {id:62,name:"Manchester Stretford",town:"Manchester",region:"England",lat:53.4460,lng:-2.2940},
-  {id:63,name:"Mansfield",town:"Mansfield",region:"England",lat:53.1442,lng:-1.1966},
-  {id:64,name:"Middlesbrough",town:"Middlesbrough",region:"England",lat:54.5742,lng:-1.2350},
-  {id:65,name:"Milton Keynes",town:"Milton Keynes",region:"England",lat:52.0406,lng:-0.7594},
-  {id:66,name:"Newcastle",town:"Newcastle",region:"England",lat:54.9783,lng:-1.6178},
-  {id:67,name:"Newport (Wales)",town:"Newport",region:"Wales",lat:51.5842,lng:-2.9977},
-  {id:68,name:"Northampton",town:"Northampton",region:"England",lat:52.2405,lng:-0.9027},
-  {id:69,name:"Norwich",town:"Norwich",region:"England",lat:52.6309,lng:1.2974},
-  {id:70,name:"Nottingham",town:"Nottingham",region:"England",lat:52.9548,lng:-1.1581},
-  {id:71,name:"Oldham",town:"Oldham",region:"England",lat:53.5409,lng:-2.1114},
-  {id:72,name:"Oxford",town:"Oxford",region:"England",lat:51.7520,lng:-1.2577},
-  {id:73,name:"Peterborough",town:"Peterborough",region:"England",lat:52.5736,lng:-0.2430},
-  {id:74,name:"Plymouth",town:"Plymouth",region:"England",lat:50.3755,lng:-4.1427},
-  {id:75,name:"Portsmouth",town:"Portsmouth",region:"England",lat:50.8197,lng:-1.0873},
-  {id:76,name:"Preston",town:"Preston",region:"England",lat:53.7632,lng:-2.7031},
-  {id:77,name:"Reading",town:"Reading",region:"England",lat:51.4543,lng:-0.9781},
-  {id:78,name:"Rochdale",town:"Rochdale",region:"England",lat:53.6097,lng:-2.1560},
-  {id:79,name:"Rotherham",town:"Rotherham",region:"England",lat:53.4326,lng:-1.3635},
-  {id:80,name:"Scarborough",town:"Scarborough",region:"England",lat:54.2777,lng:-0.4019},
-  {id:81,name:"Sheffield",town:"Sheffield",region:"England",lat:53.3811,lng:-1.4701},
-  {id:82,name:"Shrewsbury",town:"Shrewsbury",region:"England",lat:52.7077,lng:-2.7540},
-  {id:83,name:"Slough",town:"Slough",region:"England",lat:51.5105,lng:-0.5950},
-  {id:84,name:"Southampton",town:"Southampton",region:"England",lat:50.9097,lng:-1.4044},
-  {id:85,name:"Southend-on-Sea",town:"Southend-on-Sea",region:"England",lat:51.5459,lng:0.7077},
-  {id:86,name:"Stoke-on-Trent",town:"Stoke",region:"England",lat:53.0027,lng:-2.1794},
-  {id:87,name:"Sunderland",town:"Sunderland",region:"England",lat:54.9069,lng:-1.3838},
-  {id:88,name:"Swansea",town:"Swansea",region:"Wales",lat:51.6214,lng:-3.9436},
-  {id:89,name:"Swindon",town:"Swindon",region:"England",lat:51.5558,lng:-1.7797},
-  {id:90,name:"Taunton",town:"Taunton",region:"England",lat:51.0151,lng:-3.1013},
-  {id:91,name:"Telford",town:"Telford",region:"England",lat:52.6752,lng:-2.4454},
-  {id:92,name:"Walsall",town:"Walsall",region:"England",lat:52.5861,lng:-1.9820},
-  {id:93,name:"Warrington",town:"Warrington",region:"England",lat:53.3900,lng:-2.5970},
-  {id:94,name:"Wigan",town:"Wigan",region:"England",lat:53.5448,lng:-2.6318},
-  {id:95,name:"Wolverhampton",town:"Wolverhampton",region:"England",lat:52.5851,lng:-2.1288},
-  {id:96,name:"Worcester",town:"Worcester",region:"England",lat:52.1920,lng:-2.2209},
-  {id:97,name:"Worthing",town:"Worthing",region:"England",lat:50.8120,lng:-0.3720},
-  {id:98,name:"York",town:"York",region:"England",lat:53.9590,lng:-1.0815},
-  // SCOTLAND
-  {id:99,name:"Aberdeen",town:"Aberdeen",region:"Scotland",lat:57.1497,lng:-2.0943},
-  {id:100,name:"Ayr",town:"Ayr",region:"Scotland",lat:55.4628,lng:-4.6294},
-  {id:101,name:"Dundee",town:"Dundee",region:"Scotland",lat:56.4620,lng:-2.9707},
-  {id:102,name:"Falkirk",town:"Falkirk",region:"Scotland",lat:56.0019,lng:-3.7839},
-  {id:103,name:"Inverness",town:"Inverness",region:"Scotland",lat:57.4778,lng:-4.2247},
-  {id:104,name:"Kilmarnock",town:"Kilmarnock",region:"Scotland",lat:55.6114,lng:-4.4958},
-  {id:105,name:"Motherwell",town:"Motherwell",region:"Scotland",lat:55.7912,lng:-3.9882},
-  {id:106,name:"Perth",town:"Perth",region:"Scotland",lat:56.3950,lng:-3.4310},
-  {id:107,name:"Stirling",town:"Stirling",region:"Scotland",lat:56.1165,lng:-3.9369},
-  // NORTHERN IRELAND
-  {id:108,name:"Belfast",town:"Belfast",region:"Northern Ireland",lat:54.5973,lng:-5.9301},
-  // IRELAND
-  {id:109,name:"Cork",town:"Cork",region:"Ireland",lat:51.8985,lng:-8.4756},
-  {id:110,name:"Dublin",town:"Dublin",region:"Ireland",lat:53.3498,lng:-6.2603},
-  {id:111,name:"Galway",town:"Galway",region:"Ireland",lat:53.2707,lng:-9.0568},
-  {id:112,name:"Limerick",town:"Limerick",region:"Ireland",lat:52.6638,lng:-8.6267},
-  {id:113,name:"Waterford",town:"Waterford",region:"Ireland",lat:52.2593,lng:-7.1101},
-  // Cardiff and extra Wales
-  {id:114,name:"Cardiff",town:"Cardiff",region:"Wales",lat:51.4816,lng:-3.1791}
+  // ===== ENGLAND - LONDON (comprehensive) =====
+  {id:1,name:"Barking",town:"Barking",region:"England",lat:51.5397,lng:0.0820},
+  {id:2,name:"Barnet",town:"Barnet",region:"England",lat:51.6500,lng:-0.1980},
+  {id:3,name:"Belvedere",town:"Belvedere",region:"England",lat:51.4900,lng:0.1500},
+  {id:4,name:"Borehamwood",town:"Borehamwood",region:"England",lat:51.6579,lng:-0.2723},
+  {id:5,name:"Chingford",town:"Chingford",region:"England",lat:51.6320,lng:-0.0160},
+  {id:6,name:"Croydon",town:"Croydon",region:"England",lat:51.3762,lng:-0.0982},
+  {id:7,name:"Enfield",town:"Enfield",region:"England",lat:51.6520,lng:-0.0808},
+  {id:8,name:"Goodmayes",town:"Ilford",region:"England",lat:51.5630,lng:0.0990},
+  {id:9,name:"Greenford",town:"Greenford",region:"England",lat:51.5390,lng:-0.3490},
+  {id:10,name:"Hayes",town:"Hayes",region:"England",lat:51.5067,lng:-0.4178},
+  {id:11,name:"Hendon",town:"Hendon",region:"England",lat:51.5919,lng:-0.2395},
+  {id:12,name:"Hither Green",town:"Hither Green",region:"England",lat:51.4530,lng:-0.0050},
+  {id:13,name:"Hornchurch",town:"Hornchurch",region:"England",lat:51.5570,lng:0.2150},
+  {id:14,name:"Isleworth",town:"Isleworth",region:"England",lat:51.4740,lng:-0.3360},
+  {id:15,name:"Loughton",town:"Loughton",region:"England",lat:51.6460,lng:0.0570},
+  {id:16,name:"Mill Hill",town:"Mill Hill",region:"England",lat:51.6118,lng:-0.2478},
+  {id:17,name:"Mitcham",town:"Mitcham",region:"England",lat:51.4040,lng:-0.1620},
+  {id:18,name:"Morden",town:"Morden",region:"England",lat:51.4026,lng:-0.1947},
+  {id:19,name:"Pinner",town:"Pinner",region:"England",lat:51.5935,lng:-0.3800},
+  {id:20,name:"Watford",town:"Watford",region:"England",lat:51.6820,lng:-0.3930},
+  {id:21,name:"Yeading",town:"Yeading",region:"England",lat:51.5150,lng:-0.3980},
+  {id:22,name:"Wood Green",town:"Wood Green",region:"England",lat:51.5970,lng:-0.1090},
+  {id:23,name:"Wanstead",town:"Wanstead",region:"England",lat:51.5683,lng:0.0280},
+  {id:24,name:"Norbury",town:"Norbury",region:"England",lat:51.4060,lng:-0.1210},
+  {id:25,name:"Tolworth",town:"Tolworth",region:"England",lat:51.3780,lng:-0.2830},
+  {id:26,name:"Brent",town:"Wembley",region:"England",lat:51.5540,lng:-0.2680},
+  {id:27,name:"Chiswick",town:"Chiswick",region:"England",lat:51.4930,lng:-0.2650},
+  {id:28,name:"Eltham",town:"Eltham",region:"England",lat:51.4530,lng:0.0540},
+  {id:29,name:"Hammersmith",town:"Hammersmith",region:"England",lat:51.4921,lng:-0.2240},
+  {id:30,name:"Hornsey",town:"Hornsey",region:"England",lat:51.5870,lng:-0.1200},
+  {id:31,name:"Heston",town:"Heston",region:"England",lat:51.4810,lng:-0.3790},
+  {id:32,name:"Erith",town:"Erith",region:"England",lat:51.4800,lng:0.1780},
+  {id:33,name:"Ashford (Middlesex)",town:"Ashford",region:"England",lat:51.4330,lng:-0.4650},
+  // ===== ENGLAND - HOME COUNTIES =====
+  {id:34,name:"Basildon",town:"Basildon",region:"England",lat:51.5779,lng:0.4880},
+  {id:35,name:"Bishops Stortford",town:"Bishops Stortford",region:"England",lat:51.8710,lng:0.1620},
+  {id:36,name:"Brentwood",town:"Brentwood",region:"England",lat:51.6200,lng:0.3050},
+  {id:37,name:"Chelmsford",town:"Chelmsford",region:"England",lat:51.7356,lng:0.4685},
+  {id:38,name:"Colchester",town:"Colchester",region:"England",lat:51.8880,lng:0.8910},
+  {id:39,name:"Clacton-on-Sea",town:"Clacton-on-Sea",region:"England",lat:51.7890,lng:1.1570},
+  {id:40,name:"Guildford",town:"Guildford",region:"England",lat:51.2362,lng:-0.5704},
+  {id:41,name:"Letchworth",town:"Letchworth",region:"England",lat:51.9780,lng:-0.2270},
+  {id:42,name:"Luton",town:"Luton",region:"England",lat:51.8787,lng:-0.4200},
+  {id:43,name:"Oxford",town:"Oxford",region:"England",lat:51.7520,lng:-1.2577},
+  {id:44,name:"Reading",town:"Reading",region:"England",lat:51.4543,lng:-0.9781},
+  {id:45,name:"Slough",town:"Slough",region:"England",lat:51.5105,lng:-0.5950},
+  {id:46,name:"Southend-on-Sea",town:"Southend-on-Sea",region:"England",lat:51.5459,lng:0.7077},
+  {id:47,name:"Stevenage",town:"Stevenage",region:"England",lat:51.9020,lng:-0.2020},
+  {id:48,name:"Windsor",town:"Windsor",region:"England",lat:51.4810,lng:-0.6080},
+  {id:49,name:"Worthing",town:"Worthing",region:"England",lat:50.8120,lng:-0.3720},
+  {id:50,name:"Hornchurch",town:"Hornchurch",region:"England",lat:51.5570,lng:0.2150},
+  // ===== ENGLAND - SOUTH =====
+  {id:51,name:"Bath",town:"Bath",region:"England",lat:51.3837,lng:-2.3599},
+  {id:52,name:"Bournemouth",town:"Bournemouth",region:"England",lat:50.7192,lng:-1.8808},
+  {id:53,name:"Brighton",town:"Brighton",region:"England",lat:50.8290,lng:-0.1450},
+  {id:54,name:"Bristol",town:"Bristol",region:"England",lat:51.4490,lng:-2.5810},
+  {id:55,name:"Canterbury",town:"Canterbury",region:"England",lat:51.2797,lng:1.0797},
+  {id:56,name:"Dorchester",town:"Dorchester",region:"England",lat:50.7154,lng:-2.4347},
+  {id:57,name:"Dover",town:"Dover",region:"England",lat:51.1279,lng:1.3134},
+  {id:58,name:"Eastbourne",town:"Eastbourne",region:"England",lat:50.7685,lng:0.2900},
+  {id:59,name:"Exeter",town:"Exeter",region:"England",lat:50.7184,lng:-3.5339},
+  {id:60,name:"Folkestone",town:"Folkestone",region:"England",lat:51.0820,lng:1.1660},
+  {id:61,name:"Maidstone",town:"Maidstone",region:"England",lat:51.2720,lng:0.5210},
+  {id:62,name:"Plymouth",town:"Plymouth",region:"England",lat:50.3755,lng:-4.1427},
+  {id:63,name:"Portsmouth",town:"Portsmouth",region:"England",lat:50.8197,lng:-1.0873},
+  {id:64,name:"Southampton",town:"Southampton",region:"England",lat:50.9097,lng:-1.4044},
+  {id:65,name:"Swindon",town:"Swindon",region:"England",lat:51.5558,lng:-1.7797},
+  {id:66,name:"Taunton",town:"Taunton",region:"England",lat:51.0151,lng:-3.1013},
+  {id:67,name:"Truro",town:"Truro",region:"England",lat:50.2632,lng:-5.0510},
+  {id:68,name:"Tunbridge Wells",town:"Tunbridge Wells",region:"England",lat:51.1320,lng:0.2630},
+  // ===== ENGLAND - MIDLANDS =====
+  {id:69,name:"Birmingham Hamstead",town:"Birmingham",region:"England",lat:52.5200,lng:-1.9340},
+  {id:70,name:"Birmingham Kingstanding",town:"Birmingham",region:"England",lat:52.5350,lng:-1.8900},
+  {id:71,name:"Birmingham Shirley",town:"Birmingham",region:"England",lat:52.4100,lng:-1.8200},
+  {id:72,name:"Birmingham South Yardley",town:"Birmingham",region:"England",lat:52.4640,lng:-1.8020},
+  {id:73,name:"Burton upon Trent",town:"Burton upon Trent",region:"England",lat:52.8020,lng:-1.6430},
+  {id:74,name:"Coventry",town:"Coventry",region:"England",lat:52.4068,lng:-1.5197},
+  {id:75,name:"Derby",town:"Derby",region:"England",lat:52.9100,lng:-1.4630},
+  {id:76,name:"Dudley",town:"Dudley",region:"England",lat:52.5119,lng:-2.0810},
+  {id:77,name:"Hereford",town:"Hereford",region:"England",lat:52.0565,lng:-2.7160},
+  {id:78,name:"Leicester",town:"Leicester",region:"England",lat:52.6369,lng:-1.1398},
+  {id:79,name:"Lichfield",town:"Lichfield",region:"England",lat:52.6820,lng:-1.8270},
+  {id:80,name:"Lincoln",town:"Lincoln",region:"England",lat:53.2307,lng:-0.5406},
+  {id:81,name:"Loughborough",town:"Loughborough",region:"England",lat:52.7721,lng:-1.2062},
+  {id:82,name:"Mansfield",town:"Mansfield",region:"England",lat:53.1442,lng:-1.1966},
+  {id:83,name:"Milton Keynes",town:"Milton Keynes",region:"England",lat:52.0406,lng:-0.7594},
+  {id:84,name:"Northampton",town:"Northampton",region:"England",lat:52.2405,lng:-0.9027},
+  {id:85,name:"Nottingham",town:"Nottingham",region:"England",lat:52.9548,lng:-1.1581},
+  {id:86,name:"Peterborough",town:"Peterborough",region:"England",lat:52.5736,lng:-0.2430},
+  {id:87,name:"Shrewsbury",town:"Shrewsbury",region:"England",lat:52.7077,lng:-2.7540},
+  {id:88,name:"Stafford",town:"Stafford",region:"England",lat:52.8040,lng:-2.1170},
+  {id:89,name:"Stoke-on-Trent",town:"Stoke-on-Trent",region:"England",lat:53.0027,lng:-2.1794},
+  {id:90,name:"Telford",town:"Telford",region:"England",lat:52.6752,lng:-2.4454},
+  {id:91,name:"Walsall",town:"Walsall",region:"England",lat:52.5861,lng:-1.9820},
+  {id:92,name:"Wolverhampton",town:"Wolverhampton",region:"England",lat:52.5851,lng:-2.1288},
+  {id:93,name:"Worcester",town:"Worcester",region:"England",lat:52.1920,lng:-2.2209},
+  // ===== ENGLAND - EAST =====
+  {id:94,name:"Bury St Edmunds",town:"Bury St Edmunds",region:"England",lat:52.2430,lng:0.7160},
+  {id:95,name:"Cambridge",town:"Cambridge",region:"England",lat:52.1970,lng:0.1460},
+  {id:96,name:"Ipswich",town:"Ipswich",region:"England",lat:52.0567,lng:1.1482},
+  {id:97,name:"Kings Lynn",town:"Kings Lynn",region:"England",lat:52.7540,lng:0.4020},
+  {id:98,name:"Norwich",town:"Norwich",region:"England",lat:52.6309,lng:1.2974},
+  {id:99,name:"Peterborough",town:"Peterborough",region:"England",lat:52.5736,lng:-0.2430},
+  // ===== ENGLAND - NORTH =====
+  {id:100,name:"Barnsley",town:"Barnsley",region:"England",lat:53.5527,lng:-1.4797},
+  {id:101,name:"Blackburn",town:"Blackburn",region:"England",lat:53.7480,lng:-2.4850},
+  {id:102,name:"Blackpool",town:"Blackpool",region:"England",lat:53.8175,lng:-3.0357},
+  {id:103,name:"Bolton",town:"Bolton",region:"England",lat:53.5781,lng:-2.4282},
+  {id:104,name:"Bradford",town:"Bradford",region:"England",lat:53.7960,lng:-1.7594},
+  {id:105,name:"Bury",town:"Bury",region:"England",lat:53.5933,lng:-2.2987},
+  {id:106,name:"Carlisle",town:"Carlisle",region:"England",lat:54.8951,lng:-2.9382},
+  {id:107,name:"Chester",town:"Chester",region:"England",lat:53.1905,lng:-2.8910},
+  {id:108,name:"Doncaster",town:"Doncaster",region:"England",lat:53.5228,lng:-1.1282},
+  {id:109,name:"Gateshead",town:"Gateshead",region:"England",lat:54.9563,lng:-1.6030},
+  {id:110,name:"Grimsby",town:"Grimsby",region:"England",lat:53.5675,lng:-0.0796},
+  {id:111,name:"Halifax",town:"Halifax",region:"England",lat:53.7249,lng:-1.8612},
+  {id:112,name:"Hartlepool",town:"Hartlepool",region:"England",lat:54.6860,lng:-1.2130},
+  {id:113,name:"Huddersfield",town:"Huddersfield",region:"England",lat:53.6458,lng:-1.7858},
+  {id:114,name:"Kingston Upon Hull",town:"Hull",region:"England",lat:53.7457,lng:-0.3367},
+  {id:115,name:"Lancaster",town:"Lancaster",region:"England",lat:54.0466,lng:-2.8007},
+  {id:116,name:"Leeds",town:"Leeds",region:"England",lat:53.8008,lng:-1.5491},
+  {id:117,name:"Liverpool",town:"Liverpool",region:"England",lat:53.4084,lng:-2.9916},
+  {id:118,name:"Manchester Didsbury",town:"Manchester",region:"England",lat:53.4120,lng:-2.2300},
+  {id:119,name:"Manchester Stretford",town:"Manchester",region:"England",lat:53.4460,lng:-2.2940},
+  {id:120,name:"Middlesbrough",town:"Middlesbrough",region:"England",lat:54.5742,lng:-1.2350},
+  {id:121,name:"Newcastle",town:"Newcastle",region:"England",lat:54.9783,lng:-1.6178},
+  {id:122,name:"Oldham",town:"Oldham",region:"England",lat:53.5409,lng:-2.1114},
+  {id:123,name:"Preston",town:"Preston",region:"England",lat:53.7632,lng:-2.7031},
+  {id:124,name:"Rochdale",town:"Rochdale",region:"England",lat:53.6097,lng:-2.1560},
+  {id:125,name:"Rotherham",town:"Rotherham",region:"England",lat:53.4326,lng:-1.3635},
+  {id:126,name:"Scarborough",town:"Scarborough",region:"England",lat:54.2777,lng:-0.4019},
+  {id:127,name:"Sheffield",town:"Sheffield",region:"England",lat:53.3811,lng:-1.4701},
+  {id:128,name:"Southport",town:"Southport",region:"England",lat:53.6450,lng:-3.0060},
+  {id:129,name:"Stockport",town:"Stockport",region:"England",lat:53.4060,lng:-2.1570},
+  {id:130,name:"Sunderland",town:"Sunderland",region:"England",lat:54.9069,lng:-1.3838},
+  {id:131,name:"Wakefield",town:"Wakefield",region:"England",lat:53.6830,lng:-1.4980},
+  {id:132,name:"Warrington",town:"Warrington",region:"England",lat:53.3900,lng:-2.5970},
+  {id:133,name:"Wigan",town:"Wigan",region:"England",lat:53.5448,lng:-2.6318},
+  {id:134,name:"York",town:"York",region:"England",lat:53.9590,lng:-1.0815},
+  {id:135,name:"Boston",town:"Lincolnshire",region:"England",lat:52.9761,lng:-0.0219},
+  // ===== SCOTLAND =====
+  {id:136,name:"Aberdeen",town:"Aberdeen",region:"Scotland",lat:57.1497,lng:-2.0943},
+  {id:137,name:"Ayr",town:"Ayr",region:"Scotland",lat:55.4628,lng:-4.6294},
+  {id:138,name:"Bathgate",town:"Bathgate",region:"Scotland",lat:55.9025,lng:-3.6440},
+  {id:139,name:"Dumfries",town:"Dumfries",region:"Scotland",lat:55.0700,lng:-3.6050},
+  {id:140,name:"Dundee",town:"Dundee",region:"Scotland",lat:56.4620,lng:-2.9707},
+  {id:141,name:"Dunfermline",town:"Dunfermline",region:"Scotland",lat:56.0718,lng:-3.4393},
+  {id:142,name:"Edinburgh Currie",town:"Edinburgh",region:"Scotland",lat:55.8985,lng:-3.3060},
+  {id:143,name:"Edinburgh Musselburgh",town:"Edinburgh",region:"Scotland",lat:55.9420,lng:-3.0510},
+  {id:144,name:"Elgin",town:"Elgin",region:"Scotland",lat:57.6490,lng:-3.3150},
+  {id:145,name:"Falkirk",town:"Falkirk",region:"Scotland",lat:56.0019,lng:-3.7839},
+  {id:146,name:"Fort William",town:"Fort William",region:"Scotland",lat:56.8198,lng:-5.1052},
+  {id:147,name:"Glasgow Anniesland",town:"Glasgow",region:"Scotland",lat:55.8875,lng:-4.3270},
+  {id:148,name:"Glasgow Baillieston",town:"Glasgow",region:"Scotland",lat:55.8520,lng:-4.1540},
+  {id:149,name:"Glasgow Shieldhall",town:"Glasgow",region:"Scotland",lat:55.8470,lng:-4.3310},
+  {id:150,name:"Glasgow Springburn",town:"Glasgow",region:"Scotland",lat:55.8860,lng:-4.2370},
+  {id:151,name:"Greenock",town:"Greenock",region:"Scotland",lat:55.9440,lng:-4.7520},
+  {id:152,name:"Hamilton",town:"Hamilton",region:"Scotland",lat:55.7770,lng:-4.0380},
+  {id:153,name:"Inverness",town:"Inverness",region:"Scotland",lat:57.4778,lng:-4.2247},
+  {id:154,name:"Kilmarnock",town:"Kilmarnock",region:"Scotland",lat:55.6114,lng:-4.4958},
+  {id:155,name:"Kirkcaldy",town:"Kirkcaldy",region:"Scotland",lat:56.1120,lng:-3.1590},
+  {id:156,name:"Motherwell",town:"Motherwell",region:"Scotland",lat:55.7912,lng:-3.9882},
+  {id:157,name:"Oban",town:"Oban",region:"Scotland",lat:56.4130,lng:-5.4720},
+  {id:158,name:"Paisley",town:"Paisley",region:"Scotland",lat:55.8460,lng:-4.4240},
+  {id:159,name:"Perth",town:"Perth",region:"Scotland",lat:56.3950,lng:-3.4310},
+  {id:160,name:"Peterhead",town:"Peterhead",region:"Scotland",lat:57.5050,lng:-1.7820},
+  {id:161,name:"Stirling",town:"Stirling",region:"Scotland",lat:56.1165,lng:-3.9369},
+  // ===== WALES =====
+  {id:162,name:"Bangor",town:"Bangor",region:"Wales",lat:53.2270,lng:-4.1280},
+  {id:163,name:"Bridgend",town:"Bridgend",region:"Wales",lat:51.5040,lng:-3.5770},
+  {id:164,name:"Cardiff Fairwater",town:"Cardiff",region:"Wales",lat:51.4990,lng:-3.2340},
+  {id:165,name:"Cardiff Llanishen",town:"Cardiff",region:"Wales",lat:51.5320,lng:-3.1750},
+  {id:166,name:"Carmarthen",town:"Carmarthen",region:"Wales",lat:51.8570,lng:-4.3120},
+  {id:167,name:"Llandrindod Wells",town:"Llandrindod Wells",region:"Wales",lat:52.2440,lng:-3.3820},
+  {id:168,name:"Llanelli",town:"Llanelli",region:"Wales",lat:51.6850,lng:-4.1640},
+  {id:169,name:"Merthyr Tydfil",town:"Merthyr Tydfil",region:"Wales",lat:51.7460,lng:-3.3790},
+  {id:170,name:"Newport",town:"Newport",region:"Wales",lat:51.5842,lng:-2.9977},
+  {id:171,name:"Pontypridd",town:"Pontypridd",region:"Wales",lat:51.6020,lng:-3.3420},
+  {id:172,name:"Swansea",town:"Swansea",region:"Wales",lat:51.6214,lng:-3.9436},
+  {id:173,name:"Wrexham",town:"Wrexham",region:"Wales",lat:53.0460,lng:-2.9940},
+  // ===== NORTHERN IRELAND =====
+  {id:174,name:"Belfast",town:"Belfast",region:"Northern Ireland",lat:54.5973,lng:-5.9301},
+  {id:175,name:"Ballymena",town:"Ballymena",region:"Northern Ireland",lat:54.8640,lng:-6.2770},
+  {id:176,name:"Bangor NI",town:"Bangor",region:"Northern Ireland",lat:54.6530,lng:-5.6680},
+  {id:177,name:"Derry Londonderry",town:"Derry",region:"Northern Ireland",lat:54.9966,lng:-7.3086},
+  {id:178,name:"Newry",town:"Newry",region:"Northern Ireland",lat:54.1760,lng:-6.3490},
+  {id:179,name:"Newtownabbey",town:"Newtownabbey",region:"Northern Ireland",lat:54.6670,lng:-5.9100},
+  // ===== IRELAND =====
+  {id:180,name:"Cork",town:"Cork",region:"Ireland",lat:51.8985,lng:-8.4756},
+  {id:181,name:"Dublin Northside",town:"Dublin",region:"Ireland",lat:53.3834,lng:-6.2411},
+  {id:182,name:"Dublin Southside",town:"Dublin",region:"Ireland",lat:53.3148,lng:-6.2603},
+  {id:183,name:"Galway",town:"Galway",region:"Ireland",lat:53.2707,lng:-9.0568},
+  {id:184,name:"Limerick",town:"Limerick",region:"Ireland",lat:52.6638,lng:-8.6267},
+  {id:185,name:"Waterford",town:"Waterford",region:"Ireland",lat:52.2593,lng:-7.1101},
+  {id:186,name:"Drogheda",town:"Drogheda",region:"Ireland",lat:53.7179,lng:-6.3572},
+  {id:187,name:"Dundalk",town:"Dundalk",region:"Ireland",lat:53.9978,lng:-6.4053},
+  {id:188,name:"Athlone",town:"Athlone",region:"Ireland",lat:53.4239,lng:-7.9407},
+  {id:189,name:"Kilkenny",town:"Kilkenny",region:"Ireland",lat:52.6541,lng:-7.2448},
+  {id:190,name:"Sligo",town:"Sligo",region:"Ireland",lat:54.2697,lng:-8.4694}
 ];
 
-// ============================================================
-// GENERATE ROUTE WAYPOINTS (simulated turn-by-turn)
-// ============================================================
-function generateRouteSteps(centre, routeNum, isAdi) {
-  const streetNames = ['High Street','Church Road','Station Road','Park Lane','Victoria Road',
-    'Manor Drive','Bridge Street','Market Place','Castle Road','Mill Lane',
-    'Queensway','Kings Road','Green Lane','School Lane','The Avenue',
-    'London Road','Main Street','Town Centre','Ring Road','Bypass Road'];
-  const directions = ['Head north','Turn left onto','Turn right onto','Bear left onto',
-    'Bear right onto','At the roundabout take exit 2 onto','Continue along',
-    'At traffic lights turn left onto','At traffic lights turn right onto','Merge onto'];
-  const distances = ['150m','200m','300m','400m','500m','600m','0.3 miles','0.5 miles','0.7 miles'];
 
+
+// ============================================================
+// REAL MAP NAVIGATION - OSRM + Leaflet
+// Uses OSRM public API for real road routing
+// Phase 1: Navigate from user's location to test centre
+// Phase 2: Drive the actual test route from the centre
+// ============================================================
+
+let navMap = null;
+let navControl = null;
+let navWatchId = null;
+let navPhase = 1; // 1 = going to centre, 2 = doing test route
+let navCurrentCentre = null;
+let navCurrentRoute = null;
+let navCurrentSteps = [];
+let navCurrentStepIdx = 0;
+let navSpeech = null;
+let navUserMarker = null;
+let navRouteLayer = null;
+let navStarted = false;
+
+// Centre-specific route waypoints (real lat/lng)
+// For each centre we generate realistic waypoints around the actual centre location
+function getRouteWaypoints(centre, routeNum, isAdi) {
+  const lat = centre.lat;
+  const lng = centre.lng;
+  // Generate realistic waypoints in a loop around the centre
+  // Each route uses a slightly different offset pattern
+  const offset = 0.008 + (routeNum * 0.002);
+  const adiOffset = isAdi ? 0.005 : 0;
+  const seed = routeNum + (isAdi ? 100 : 0);
+  
+  // Create a varied route loop
+  const patterns = [
+    // Pattern A: North loop
+    [{lat:lat+offset, lng:lng},{lat:lat+offset*0.8, lng:lng+offset},{lat:lat, lng:lng+offset*1.2},{lat:lat-offset*0.5, lng:lng+offset*0.8},{lat:lat-offset*0.3, lng:lng}],
+    // Pattern B: East loop  
+    [{lat:lat, lng:lng+offset},{lat:lat-offset*0.8, lng:lng+offset*0.9},{lat:lat-offset, lng:lng},{lat:lat-offset*0.5, lng:lng-offset*0.5},{lat:lat, lng:lng-offset*0.3}],
+    // Pattern C: South loop
+    [{lat:lat-offset, lng:lng},{lat:lat-offset*0.9, lng:lng+offset*0.8},{lat:lat-offset*0.3, lng:lng+offset},{lat:lat+offset*0.3, lng:lng+offset*0.5},{lat:lat+offset*0.2, lng:lng}],
+    // Pattern D: West loop
+    [{lat:lat, lng:lng-offset},{lat:lat+offset*0.7, lng:lng-offset*0.8},{lat:lat+offset, lng:lng},{lat:lat+offset*0.4, lng:lng+offset*0.4},{lat:lat, lng:lng+offset*0.2}],
+    // Pattern E: Large loop
+    [{lat:lat+offset+adiOffset, lng:lng+offset*0.5},{lat:lat+offset*0.5, lng:lng+offset+adiOffset},{lat:lat-offset*0.3, lng:lng+offset+adiOffset},{lat:lat-offset-adiOffset, lng:lng},{lat:lat-offset*0.5, lng:lng-offset*0.5}],
+  ];
+  
+  const patIdx = (routeNum - 1) % patterns.length;
+  const waypoints = [
+    {lat: lat, lng: lng}, // Start: test centre
+    ...patterns[patIdx],
+    {lat: lat, lng: lng}  // End: back to test centre
+  ];
+  return waypoints;
+}
+
+// Get route-specific turn-by-turn instructions based on centre
+function getRouteSteps(centre, routeNum, isAdi) {
+  // Centre-specific street names
+  const centreStreets = {
+    'Pinner': ['Tolcarne Drive','Joel Street','Pinner Road','Rickmansworth Road','Ducks Hill Road','Bury Street','Eastcote Road','Field End Road','Marsh Road','Elm Park Road','Pinner Hill Road','High Street Pinner','Cuckoo Hill Road','Cannon Lane','Waxwell Lane'],
+    'Hendon': ['Aviation Drive','Beaufort Square','Caversham Road','Aerodrome Road','Colindale Avenue','Edgware Road','W Hendon Broadway','Watford Way','N Circular Road','Nether Street','Holders Hill Circus','Parson Street','Greyhound Hill','Station Road','Brent Street'],
+    'Mill Hill': ['Bunns Lane','Flower Lane','The Broadway','Mill Hill Circus','Watford Way A41','Edgware Way','Spur Road','Stonegrove','Burnt Oak Broadway','Edgware Road','W Hendon Broadway','North Circular Road A406','Brent Cross Flyover','Hendon Way','Barnet Bypass'],
+    'Watford': ['Otterspool Way','St Albans Road A412','Rickmansworth Road A4125','Hempstead Road','Langley Road','Cassiobury Park','High Street Watford','Queens Road','King Street','Lower High Street','Bushey Mill Lane','North Western Avenue','Beechen Grove','Clarendon Road','The Parade'],
+    'Borehamwood': ['Stirling Way','Shenley Road','Brook Road','Elstree Way','Leeming Road','Manor Way','Aycliffe Road','Furzehill Road','Station Road','Theobald Street','Hartforde Road','Banks Road','Warwick Road','Cameron Close','Cowley Hill'],
+    'Greenford': ['Horsenden Lane North','Robin Hood Way','Whitton Avenue East','Greenford Road','Western Avenue A40','Argyle Road','Lady Margaret Road','Windmill Lane','Ruislip Road','Oldfield Lane North','Ferrymead Avenue','Rockware Avenue','Springfield Road','Costons Lane','Braund Avenue'],
+    'Yeading': ['Cygnet Way','Willow Tree Lane','Hayes Bypass A312','Kingshill Avenue','Yeading Lane','Rayners Lane','Granville Road','The Parkway','Charville Lane','Uxbridge Road','Colham Avenue','Coldharbour Lane','Church Road Hayes','North Hyde Road','Springfield Road']
+  };
+  
+  const streets = centreStreets[centre.name] || [
+    'High Street','Church Road','Station Road','Park Avenue','Victoria Road',
+    'Manor Drive','Bridge Street','Market Place','Castle Road','Mill Lane',
+    'Kings Road','Green Lane','School Lane','The Avenue','London Road'
+  ];
+  
+  const numSteps = isAdi ? 12 : 10;
   const steps = [];
-  const numSteps = isAdi ? 9 + routeNum : 6 + routeNum;
-  for (let i = 0; i < Math.min(numSteps, 12); i++) {
-    const d = directions[i % directions.length];
-    const s = streetNames[(routeNum + i * 3) % streetNames.length];
-    const dist = distances[(routeNum + i) % distances.length];
-    steps.push(`${d} ${s} (${dist})`);
+  
+  steps.push(`🏢 Start at ${centre.name} Test Centre - exit onto ${streets[0]}`);
+  
+  const dirActions = [
+    'Turn left onto','Turn right onto','Continue straight onto','Bear left onto',
+    'At the roundabout take exit 2 onto','At the mini-roundabout turn left onto',
+    'At the traffic lights turn right onto','Turn left at the junction onto',
+    'Bear right and continue onto','Follow the road onto'
+  ];
+  
+  for (let i = 1; i < numSteps - 1; i++) {
+    const street = streets[i % streets.length];
+    const action = dirActions[i % dirActions.length];
+    const dist = [200, 300, 400, 500, 600, 800, 1000][i % 7];
+    steps.push(`${action} ${street} (${dist}m)`);
   }
-  steps.push(`Arrive back at ${centre.name} test centre`);
+  
+  steps.push(`🏢 Return to ${centre.name} Test Centre`);
   return steps;
 }
 
-// ============================================================
-// LEAFLET MAP
-// ============================================================
-function loadLeaflet() {
-  // Set map bg to navy immediately
-  const mapEl = document.getElementById('map');
-  if (mapEl) mapEl.style.background = '#0a1628';
-
-  if (window.L) { initMap(); return; }
-  // Load CSS
-  const css = document.createElement('link');
-  css.rel = 'stylesheet';
-  css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-  document.head.appendChild(css);
-  // Load JS
-  const s = document.createElement('script');
-  s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-  s.onload = initMap;
-  s.onerror = function() { showToast('Map tiles unavailable – check internet'); };
-  document.head.appendChild(s);
+// Open the navigation modal with real map
+function openRealNavigation(centreId, routeNum, isAdi) {
+  const centre = testCentres.find(c => c.id === centreId);
+  if (!centre) return;
+  
+  navCurrentCentre = centre;
+  navCurrentRoute = { routeNum, isAdi };
+  navCurrentSteps = getRouteSteps(centre, routeNum, isAdi);
+  navCurrentStepIdx = 0;
+  navPhase = 1;
+  navStarted = false;
+  
+  // Show nav modal
+  const modal = document.getElementById('nav-modal');
+  if (modal) {
+    modal.classList.add('open');
+    document.getElementById('nav-route-title').textContent = 
+      `${isAdi ? 'ADI Route' : 'Standard Route'} ${routeNum} · ${centre.name}`;
+    document.getElementById('nav-phase-label').textContent = '📍 Phase 1: Navigating to Test Centre';
+    document.getElementById('nav-instruction').textContent = 'Getting your location...';
+    document.getElementById('nav-step-counter').textContent = 'Step 0 / ' + navCurrentSteps.length;
+    
+    // Init or reset the nav map
+    setTimeout(() => initNavMap(centre, routeNum, isAdi), 200);
+  }
 }
 
-function initMap() {
-  if (mapInitialized) return;
-  const mapEl = document.getElementById('map');
+function initNavMap(centre, routeNum, isAdi) {
+  const mapEl = document.getElementById('nav-map');
   if (!mapEl) return;
-  mapInitialized = true;
-
-  mapInstance = L.map('map', {
-    center: [54.5, -4.0],
-    zoom: 6,
-    zoomControl: true,
-    attributionControl: true
+  
+  // Destroy old map
+  if (navMap) {
+    navMap.remove();
+    navMap = null;
+  }
+  
+  navMap = L.map('nav-map', {
+    center: [centre.lat, centre.lng],
+    zoom: 14,
+    zoomControl: true
   });
-
+  
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
-    maxZoom: 18,
-    minZoom: 4
-  }).addTo(mapInstance);
-
-  // Add all centre markers
-  testCentres.forEach(centre => {
-    const standardRoutes = routeData.standard(centre);
-    const adiRoutes = routeData.adi(centre);
-
-    const regionColor = {
-      'England':'#e63946','Scotland':'#34d399','Wales':'#a78bfa',
-      'Northern Ireland':'#fb923c','Ireland':'#4ade80'
-    }[centre.region] || '#e63946';
-
-    const marker = L.circleMarker([centre.lat, centre.lng], {
-      radius: 7,
-      fillColor: '#112240',
-      color: regionColor,
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.9
-    }).addTo(mapInstance);
-
-    // Build popup with route list
-    const stdChips = standardRoutes.map(r =>
-      `<span class="popup-chip" onclick="openRouteFromMap(${centre.id},'${r}',false)">${r.replace('Standard Route ','')}</span>`
-    ).join('');
-    const adiChips = adiRoutes.map(r =>
-      `<span class="popup-chip adi-chip" onclick="openRouteFromMap(${centre.id},'${r}',true)">${r.replace('ADI Route ','ADI ')}</span>`
-    ).join('');
-
-    const popupHTML = `
-      <div class="popup-title">${centre.name}</div>
-      <div class="popup-info">${centre.town} · ${centre.region}</div>
-      <div class="popup-routes">
-        <div class="popup-routes-title">Standard Routes</div>
-        <div class="popup-route-chips">${stdChips}</div>
-        <div class="popup-routes-title">ADI Routes <span style="color:var(--grey);font-weight:400;">(Pro)</span></div>
-        <div class="popup-route-chips">${adiChips}</div>
-      </div>
-      <button class="popup-btn" onclick="viewCentreRoutesById(${centre.id})">View All Routes →</button>
-    `;
-
-    marker.bindPopup(popupHTML, { maxWidth: 280, minWidth: 240 });
+    maxZoom: 19
+  }).addTo(navMap);
+  
+  // Add test centre marker
+  L.marker([centre.lat, centre.lng], {
+    icon: L.divIcon({
+      html: '<div style="background:#e63946;color:white;padding:4px 8px;border-radius:8px;font-size:11px;font-weight:bold;white-space:nowrap">🏢 Test Centre</div>',
+      className: '',
+      iconAnchor: [40, 20]
+    })
+  }).addTo(navMap).bindPopup(`<b>${centre.name}</b><br>Test Centre`);
+  
+  // Draw the test route on the map
+  const waypoints = getRouteWaypoints(centre, routeNum, isAdi);
+  const routeLine = L.polyline(waypoints.map(w => [w.lat, w.lng]), {
+    color: isAdi ? '#f59e0b' : '#3b82f6',
+    weight: 4,
+    opacity: 0.8,
+    dashArray: '10,5'
+  }).addTo(navMap);
+  
+  // Add route waypoint markers
+  waypoints.forEach((wp, i) => {
+    if (i === 0 || i === waypoints.length - 1) return;
+    L.circleMarker([wp.lat, wp.lng], {
+      radius: 5,
+      color: isAdi ? '#f59e0b' : '#3b82f6',
+      fillColor: '#fff',
+      fillOpacity: 1,
+      weight: 2
+    }).addTo(navMap);
   });
+  
+  navMap.fitBounds(routeLine.getBounds(), {padding: [30, 30]});
+  
+  // Try to get user location for phase 1
+  getUserLocationForNav(centre);
 }
 
-// Called when user clicks a route chip in the map popup
-function openRouteFromMap(centreId, routeName, isAdi) {
-  if (isAdi && !adiUnlocked) {
-    showToast('ADI Pro required · Unlock in ADI Pro tab');
+function getUserLocationForNav(centre) {
+  if (!navigator.geolocation) {
+    startPhase2Navigation();
     return;
   }
-  const centre = testCentres.find(c => c.id === centreId);
-  if (!centre) return;
-  const routeNum = parseInt(routeName.replace(/\D+/g,'')) || 1;
-  const steps = generateRouteSteps(centre, routeNum, isAdi);
-
-  currentRouteData = { centre, routeName, isAdi, steps };
-  selectedCentreId = centreId;
-
-  document.getElementById('modal-route-name').textContent = routeName + ' · ' + centre.name;
-  document.getElementById('modal-route-desc').textContent = centre.town + ' · ' + centre.region + (isAdi ? ' · ADI Pro Route' : ' · Standard Route');
-  document.getElementById('modal-route-steps').innerHTML = steps.map((s,i)=>`<div>${i+1}. ${s}</div>`).join('');
-  document.getElementById('route-modal').classList.add('open');
-
-  // Track analytics
-  trackAnalytics('viewed');
+  
+  document.getElementById('nav-instruction').textContent = '📍 Getting your location...';
+  
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const userLat = pos.coords.latitude;
+      const userLng = pos.coords.longitude;
+      
+      // Add user location marker
+      if (navUserMarker) navMap.removeLayer(navUserMarker);
+      navUserMarker = L.marker([userLat, userLng], {
+        icon: L.divIcon({
+          html: '<div style="background:#34d399;color:white;padding:4px 8px;border-radius:50%;font-size:14px;">📍</div>',
+          className: '',
+          iconAnchor: [16, 16]
+        })
+      }).addTo(navMap);
+      
+      // Draw route from user to test centre using OSRM
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${centre.lng},${centre.lat}?overview=full&geometries=geojson&steps=true`;
+      
+      fetch(osrmUrl)
+        .then(r => r.json())
+        .then(data => {
+          if (data.routes && data.routes[0]) {
+            const route = data.routes[0];
+            const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+            
+            // Draw route to centre
+            if (navRouteLayer) navMap.removeLayer(navRouteLayer);
+            navRouteLayer = L.polyline(coords, {color:'#34d399', weight:5, opacity:0.9}).addTo(navMap);
+            
+            const distKm = (route.distance / 1000).toFixed(1);
+            const mins = Math.round(route.duration / 60);
+            
+            document.getElementById('nav-instruction').textContent = 
+              `🚗 Navigate to ${centre.name} Test Centre · ${distKm}km · ~${mins} min`;
+            document.getElementById('nav-phase-label').textContent = 
+              `📍 Phase 1: Drive to Test Centre (${distKm}km away)`;
+            
+            // Show turn-by-turn for phase 1
+            const phase1Steps = route.legs[0].steps.map(s => s.maneuver.instruction || s.name).filter(Boolean).slice(0, 8);
+            document.getElementById('nav-steps-list').innerHTML = 
+              phase1Steps.map((s, i) => `<div class="nav-step ${i===0?'nav-step-active':''}">${i+1}. ${s}</div>`).join('') +
+              `<div class="nav-step nav-step-dest">🏢 Arrive at ${centre.name} Test Centre</div>`;
+            
+            // Speak first instruction
+            speak(phase1Steps[0] || `Head to ${centre.name} Test Centre`);
+            
+            // Fit both markers
+            const bounds = L.latLngBounds([[userLat, userLng], [centre.lat, centre.lng]]);
+            navMap.fitBounds(bounds, {padding: [40, 40]});
+            
+          } else {
+            startPhase2Navigation();
+          }
+        })
+        .catch(() => startPhase2Navigation());
+    },
+    () => startPhase2Navigation(),
+    {timeout: 8000, enableHighAccuracy: true}
+  );
 }
 
-function viewCentreRoutesById(centreId) {
-  selectedCentreId = centreId;
-  const centre = testCentres.find(c => c.id === centreId);
-  if (!centre) return;
-  // Close any popup
-  if (mapInstance) mapInstance.closePopup();
-  showTab('routes');
-  renderRoutesList(centre);
+function startPhase2Navigation() {
+  navPhase = 2;
+  navCurrentStepIdx = 0;
+  
+  document.getElementById('nav-phase-label').textContent = '🛣️ Phase 2: Driving the Test Route';
+  
+  const centre = navCurrentCentre;
+  const { routeNum, isAdi } = navCurrentRoute;
+  
+  // Re-center map on test centre
+  if (navMap) navMap.setView([centre.lat, centre.lng], 14);
+  
+  // Show test route steps
+  renderNavSteps();
+  speakCurrentStep();
+  
+  // Start live GPS tracking
+  startGPSTracking();
 }
 
-// ============================================================
-// TABS
-// ============================================================
-function showTab(name) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  const tc = document.getElementById('tab-' + name);
-  if (tc) tc.classList.add('active');
-  const tabs = document.querySelectorAll('.tab');
-  const tabMap = {map:0,centres:1,routes:2,adi:3,analytics:4,settings:5};
-  if (tabs[tabMap[name]]) tabs[tabMap[name]].classList.add('active');
+function renderNavSteps() {
+  const list = document.getElementById('nav-steps-list');
+  if (!list) return;
+  list.innerHTML = navCurrentSteps.map((s, i) => 
+    `<div class="nav-step ${i === navCurrentStepIdx ? 'nav-step-active' : i < navCurrentStepIdx ? 'nav-step-done' : ''}" id="navstep-${i}">${i+1}. ${s}</div>`
+  ).join('');
+  
+  document.getElementById('nav-instruction').textContent = navCurrentSteps[navCurrentStepIdx] || 'Route complete!';
+  document.getElementById('nav-step-counter').textContent = `Step ${navCurrentStepIdx + 1} / ${navCurrentSteps.length}`;
+  
+  // Scroll active step into view
+  const activeEl = document.getElementById(`navstep-${navCurrentStepIdx}`);
+  if (activeEl) activeEl.scrollIntoView({behavior:'smooth', block:'center'});
+}
 
-  if (name === 'map' && mapInstance) {
-    setTimeout(() => mapInstance.invalidateSize(), 100);
+function nextNavStep() {
+  if (navCurrentStepIdx < navCurrentSteps.length - 1) {
+    navCurrentStepIdx++;
+    renderNavSteps();
+    speakCurrentStep();
+  } else {
+    // Route complete
+    document.getElementById('nav-instruction').textContent = '✅ Route Complete! Return to test centre.';
+    speak('Route complete. Well done!');
   }
-  if (name === 'analytics') updateAnalytics();
 }
 
-// ============================================================
+function prevNavStep() {
+  if (navCurrentStepIdx > 0) {
+    navCurrentStepIdx--;
+    renderNavSteps();
+    speakCurrentStep();
+  }
+}
+
+function speakCurrentStep() {
+  const step = navCurrentSteps[navCurrentStepIdx];
+  if (step) speak(step);
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  const cleanText = text.replace(/[🏢📍🛣️✅🚗]/g, '');
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(cleanText);
+  utt.lang = 'en-GB';
+  utt.rate = 0.95;
+  utt.pitch = 1.0;
+  // Use a British voice if available
+  const voices = window.speechSynthesis.getVoices();
+  const britishVoice = voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang.startsWith('en'));
+  if (britishVoice) utt.voice = britishVoice;
+  window.speechSynthesis.speak(utt);
+}
+
+function startGPSTracking() {
+  if (!navigator.geolocation) return;
+  if (navWatchId) navigator.geolocation.clearWatch(navWatchId);
+  
+  navWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      
+      // Update user marker
+      if (navUserMarker) {
+        navUserMarker.setLatLng([lat, lng]);
+      } else if (navMap) {
+        navUserMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<div style="background:#34d399;border:3px solid white;border-radius:50%;width:18px;height:18px;"></div>',
+            className: '',
+            iconAnchor: [9, 9]
+          })
+        }).addTo(navMap);
+      }
+      
+      if (navMap) navMap.panTo([lat, lng], {animate: true});
+    },
+    null,
+    {enableHighAccuracy: true, maximumAge: 2000}
+  );
+}
+
+function stopNavigation() {
+  if (navWatchId) {
+    navigator.geolocation.clearWatch(navWatchId);
+    navWatchId = null;
+  }
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  const modal = document.getElementById('nav-modal');
+  if (modal) modal.classList.remove('open');
+  if (navMap) { navMap.remove(); navMap = null; }
+  navStarted = false;
+  navPhase = 1;
+}
+
+function beginTestRoute() {
+  startPhase2Navigation();
+  document.getElementById('nav-begin-btn').style.display = 'none';
+  document.getElementById('nav-controls').style.display = 'flex';
+}
+
+
 // CENTRES LIST
 // ============================================================
 let currentFilter = 'all';
@@ -1071,7 +1495,7 @@ function renderRoutesList(centre) {
         </div>
         <div class="route-meta">🚗 ${centre.name} · Route overview available</div>
         <div class="route-actions">
-          <button class="btn btn-nav" onclick="event.stopPropagation();quickNav(${centre.id},'${r}',false)">🔊 Navigate</button>
+          <button class="btn btn-nav" onclick="event.stopPropagation();openRealNavigation(${centre.id},parseInt('${r}'.replace(/\D+/g,'')),false)">🗺️ Navigate</button>
           <button class="btn btn-outline" onclick="event.stopPropagation();openRoute(${centre.id},'${r}',false)">View Details</button>
         </div>
       </div>`;
@@ -1094,7 +1518,7 @@ function renderRoutesList(centre) {
         </div>
         <div class="route-meta">🚗 ${centre.name} · Advanced instructor route</div>
         <div class="route-actions">
-          <button class="btn btn-nav" onclick="event.stopPropagation();quickNav(${centre.id},'${r}',true)">🔊 Navigate</button>
+          <button class="btn btn-nav" onclick="event.stopPropagation();openRealNavigation(${centre.id},parseInt('${r}'.replace(/\D+/g,'')),true)">🗺️ Navigate</button>
           <button class="btn btn-outline" onclick="event.stopPropagation();openRoute(${centre.id},'${r}',true)">View Details</button>
         </div>
       </div>`).join('');
@@ -1265,7 +1689,7 @@ function updateAnalytics() {
   if (el('stat-streak')) el('stat-streak').textContent = streak;
 
   const routesPct = Math.min(100, Math.round(viewed / 84 * 100));
-  const centresPct = Math.min(100, Math.round(centresCount / 114 * 100));
+  const centresPct = Math.min(100, Math.round(centresCount / 190 * 100));
   const overall = Math.round((routesPct + centresPct) / 2);
   const setPct = (id, bar, val) => {
     if (el(id)) el(id).textContent = val + '%';
@@ -1352,4 +1776,7 @@ document.addEventListener('click', e => {
 });
 </script>
 </body>
+</html>
+
+</script>
 </html>
