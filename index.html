@@ -607,6 +607,31 @@ body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- REAL MAP NAVIGATION MODAL -->
+  <div id="nav-modal">
+    <div id="nav-header">
+      <div>
+        <div id="nav-route-title">Navigation</div>
+        <div id="nav-phase-label">Phase 1: Going to Test Centre</div>
+      </div>
+      <button class="nav-btn nav-btn-stop" onclick="stopNavigation()" style="flex:none;padding:8px 14px;">✕ Stop</button>
+    </div>
+    <div id="nav-map"></div>
+    <div id="nav-bottom">
+      <div id="nav-instruction">Getting your location...</div>
+      <div id="nav-step-counter">Step 0 / 0</div>
+      <button id="nav-begin-btn" class="nav-btn nav-btn-begin" onclick="beginTestRoute()">
+        🚗 I'm at the Test Centre — Start Route
+      </button>
+      <div id="nav-controls" style="display:none;">
+        <button class="nav-btn nav-btn-prev" onclick="prevNavStep()">◀ Prev</button>
+        <button class="nav-btn nav-btn-next" onclick="nextNavStep()">Next ▶</button>
+        <button class="nav-btn nav-btn-stop" onclick="stopNavigation()">■ Stop</button>
+      </div>
+      <div id="nav-steps-list"></div>
+    </div>
+  </div>
+
 <script>
 // ============================================================
 // DEVICE FINGERPRINT — used to lock one account to one device
@@ -809,32 +834,7 @@ function showUserModal() {
 // TEST CENTRES DATA (all from user's list + existing data)
 // ============================================================
 
-  <!-- REAL MAP NAVIGATION MODAL -->
-  <div id="nav-modal">
-    <div id="nav-header">
-      <div>
-        <div id="nav-route-title">Navigation</div>
-        <div id="nav-phase-label">Phase 1: Going to Test Centre</div>
-      </div>
-      <button class="nav-btn nav-btn-stop" onclick="stopNavigation()" style="flex:none;padding:8px 14px;">✕ Stop</button>
-    </div>
-    <div id="nav-map"></div>
-    <div id="nav-bottom">
-      <div id="nav-instruction">Getting your location...</div>
-      <div id="nav-step-counter">Step 0 / 0</div>
-      <button id="nav-begin-btn" class="nav-btn nav-btn-begin" onclick="beginTestRoute()">
-        🚗 I'm at the Test Centre — Start Route
-      </button>
-      <div id="nav-controls" style="display:none;">
-        <button class="nav-btn nav-btn-prev" onclick="prevNavStep()">◀ Prev</button>
-        <button class="nav-btn nav-btn-next" onclick="nextNavStep()">Next ▶</button>
-        <button class="nav-btn nav-btn-stop" onclick="stopNavigation()">■ Stop</button>
-      </div>
-      <div id="nav-steps-list"></div>
-    </div>
-  </div>
 
-<script>
 // ============================================================
 // ROUTE DATA
 // ============================================================
@@ -1426,6 +1426,146 @@ function beginTestRoute() {
 let currentFilter = 'all';
 let currentSearch = '';
 
+function generateRouteSteps(centre, routeNum, isAdi) {
+  const streetNames = ['High Street','Church Road','Station Road','Park Lane','Victoria Road',
+    'Manor Drive','Bridge Street','Market Place','Castle Road','Mill Lane',
+    'Queensway','Kings Road','Green Lane','School Lane','The Avenue',
+    'London Road','Main Street','Town Centre','Ring Road','Bypass Road'];
+  const directions = ['Head north','Turn left onto','Turn right onto','Bear left onto',
+    'Bear right onto','At the roundabout take exit 2 onto','Continue along',
+    'At traffic lights turn left onto','At traffic lights turn right onto','Merge onto'];
+  const distances = ['150m','200m','300m','400m','500m','600m','0.3 miles','0.5 miles','0.7 miles'];
+
+  const steps = [];
+  const numSteps = isAdi ? 9 + routeNum : 6 + routeNum;
+  for (let i = 0; i < Math.min(numSteps, 12); i++) {
+    const d = directions[i % directions.length];
+    const s = streetNames[(routeNum + i * 3) % streetNames.length];
+    const dist = distances[(routeNum + i) % distances.length];
+    steps.push(`${d} ${s} (${dist})`);
+  }
+  steps.push(`Arrive back at ${centre.name} test centre`);
+  return steps;
+}
+
+// ============================================================
+// LEAFLET MAP
+// ============================================================
+function loadLeaflet() {
+  // Set map bg to navy immediately
+  const mapEl = document.getElementById('map');
+  if (mapEl) mapEl.style.background = '#0a1628';
+
+  if (window.L) { initMap(); return; }
+  // Load CSS
+  const css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  document.head.appendChild(css);
+  // Load JS
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  s.onload = initMap;
+  s.onerror = function() { showToast('Map tiles unavailable – check internet'); };
+  document.head.appendChild(s);
+}
+
+function initMap() {
+  if (mapInitialized) return;
+  const mapEl = document.getElementById('map');
+  if (!mapEl) return;
+  mapInitialized = true;
+
+  mapInstance = L.map('map', {
+    center: [54.5, -4.0],
+    zoom: 6,
+    zoomControl: true,
+    attributionControl: true
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 18,
+    minZoom: 4
+  }).addTo(mapInstance);
+
+  // Add all centre markers
+  testCentres.forEach(centre => {
+    const standardRoutes = routeData.standard(centre);
+    const adiRoutes = routeData.adi(centre);
+
+    const regionColor = {
+      'England':'#e63946','Scotland':'#34d399','Wales':'#a78bfa',
+      'Northern Ireland':'#fb923c','Ireland':'#4ade80'
+    }[centre.region] || '#e63946';
+
+    const marker = L.circleMarker([centre.lat, centre.lng], {
+      radius: 7,
+      fillColor: '#112240',
+      color: regionColor,
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.9
+    }).addTo(mapInstance);
+
+    // Build popup with route list
+    const stdChips = standardRoutes.map(r =>
+      `<span class="popup-chip" onclick="openRouteFromMap(${centre.id},'${r}',false)">${r.replace('Standard Route ','')}</span>`
+    ).join('');
+    const adiChips = adiRoutes.map(r =>
+      `<span class="popup-chip adi-chip" onclick="openRouteFromMap(${centre.id},'${r}',true)">${r.replace('ADI Route ','ADI ')}</span>`
+    ).join('');
+
+    const popupHTML = `
+      <div class="popup-title">${centre.name}</div>
+      <div class="popup-info">${centre.town} · ${centre.region}</div>
+      <div class="popup-routes">
+        <div class="popup-routes-title">Standard Routes</div>
+        <div class="popup-route-chips">${stdChips}</div>
+        <div class="popup-routes-title">ADI Routes <span style="color:var(--grey);font-weight:400;">(Pro)</span></div>
+        <div class="popup-route-chips">${adiChips}</div>
+      </div>
+      <button class="popup-btn" onclick="viewCentreRoutesById(${centre.id})">View All Routes →</button>
+    `;
+
+    marker.bindPopup(popupHTML, { maxWidth: 280, minWidth: 240 });
+  });
+}
+
+// Called when user clicks a route chip in the map popup
+function openRouteFromMap(centreId, routeName, isAdi) {
+  if (isAdi && !adiUnlocked) {
+    showToast('ADI Pro required · Unlock in ADI Pro tab');
+    return;
+  }
+  const centre = testCentres.find(c => c.id === centreId);
+  if (!centre) return;
+  const routeNum = parseInt(routeName.replace(/\D+/g,'')) || 1;
+  const steps = generateRouteSteps(centre, routeNum, isAdi);
+
+  currentRouteData = { centre, routeName, isAdi, steps };
+  selectedCentreId = centreId;
+
+  document.getElementById('modal-route-name').textContent = routeName + ' · ' + centre.name;
+  document.getElementById('modal-route-desc').textContent = centre.town + ' · ' + centre.region + (isAdi ? ' · ADI Pro Route' : ' · Standard Route');
+  document.getElementById('modal-route-steps').innerHTML = steps.map((s,i)=>`<div>${i+1}. ${s}</div>`).join('');
+  document.getElementById('route-modal').classList.add('open');
+
+  // Track analytics
+  trackAnalytics('viewed');
+}
+
+function viewCentreRoutesById(centreId) {
+  selectedCentreId = centreId;
+  const centre = testCentres.find(c => c.id === centreId);
+  if (!centre) return;
+  // Close any popup
+  if (mapInstance) mapInstance.closePopup();
+  showTab('routes');
+  renderRoutesList(centre);
+}
+
+
 function renderCentresList(centres) {
   const list = document.getElementById('centres-list');
   if (!list) return;
@@ -1776,7 +1916,4 @@ document.addEventListener('click', e => {
 });
 </script>
 </body>
-</html>
-
-</script>
 </html>
