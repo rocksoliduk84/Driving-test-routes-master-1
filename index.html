@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a1628">
-<meta name="description" content="Driving Test Routes Master UK & Ireland – 382 test centres, 8,400+ practice routes, voice navigation.">
+<meta name="description" content="Driving Test Routes Master UK & Ireland – live test centres, routes and smart resume navigation.">
 <title>Driving Test Routes Master UK & Ireland</title>
 <link rel="manifest" href="#" id="manifest-link">
 <!-- Google Sign-In -->
@@ -303,7 +303,7 @@ body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans
 <div id="auth-screen">
   <div class="auth-logo">🚗</div>
   <div class="auth-title">Driving Test Routes<br><span style="color:var(--red)">Master</span></div>
-  <div class="auth-sub">UK & Ireland · 382 Centres · 8,400+ Routes<br>Sign in to sync your progress across sessions.</div>
+  <div class="auth-sub">UK & Ireland · <span id="app-centre-count-auth">190</span> Centres · <span id="app-route-count-auth">4,180</span> Routes<br>Sign in to sync your progress across sessions.</div>
   <div class="auth-device-info">
     <p>Your device will be registered to your account.<br>One account = one device.</p>
     <div class="auth-device-id" id="auth-device-id">Generating device ID…</div>
@@ -353,7 +353,7 @@ body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans
     <span style="font-size:22px;">🚗</span>
     <div>
       <div class="header-title">Driving Test Routes <span>Master</span></div>
-      <div class="header-tagline">UK & Ireland · 382 Centres · 8,400+ Routes</div>
+      <div class="header-tagline">UK & Ireland · <span id="app-centre-count-header">190</span> Centres · <span id="app-route-count-header">4,180</span> Routes</div>
     </div>
   </div>
   <div class="header-right">
@@ -380,10 +380,10 @@ body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans
   <div class="tab-content" id="tab-centres">
     <div class="page-content">
       <div class="page-title">Test Centres</div>
-      <div class="page-subtitle">382 centres across UK & Ireland</div>
+      <div class="page-subtitle"><span id="app-centre-count-subtitle">190</span> centres across UK & Ireland</div>
       <div class="stats-row">
-        <div class="stat-card"><div class="stat-number">382</div><div class="stat-label">Total Centres</div></div>
-        <div class="stat-card"><div class="stat-number">8,404</div><div class="stat-label">Total Routes</div></div>
+        <div class="stat-card"><div class="stat-number" id="app-centre-count-card">190</div><div class="stat-label">Total Centres</div></div>
+        <div class="stat-card"><div class="stat-number" id="app-route-count-card">4,180</div><div class="stat-label">Total Routes</div></div>
         <div class="stat-card"><div class="stat-number">220</div><div class="stat-label">England</div></div>
         <div class="stat-card"><div class="stat-number">162</div><div class="stat-label">Scotland/Wales/NI/IE</div></div>
       </div>
@@ -529,6 +529,10 @@ body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans
           <div><div class="settings-label">📍 GPS Tracking</div><div class="settings-value">Live position on map</div></div>
           <div class="toggle on" id="toggle-gps" onclick="toggleSetting('gps')"></div>
         </div>
+        <div class="settings-item" id="resume-nav-item" onclick="showResumeNavigationModal()" style="display:none;">
+          <div><div class="settings-label">🧭 Resume Navigation</div><div class="settings-value" id="resume-nav-summary">Continue a saved route</div></div>
+          <div style="color:var(--grey);">›</div>
+        </div>
       </div>
       <div class="settings-section">
         <div class="settings-title">App</div>
@@ -543,9 +547,9 @@ body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans
       </div>
       <div class="settings-section">
         <div class="settings-title">About</div>
-        <div class="settings-item"><div class="settings-label">📱 Version</div><div class="settings-value">v11.0.0</div></div>
-        <div class="settings-item"><div class="settings-label">🏢 Centres</div><div class="settings-value">382</div></div>
-        <div class="settings-item"><div class="settings-label">🛣️ Routes</div><div class="settings-value">8,404</div></div>
+        <div class="settings-item"><div class="settings-label">📱 Version</div><div class="settings-value">v12.0.0-alpha</div></div>
+        <div class="settings-item"><div class="settings-label">🏢 Centres</div><div class="settings-value" id="app-centre-count-settings">190</div></div>
+        <div class="settings-item"><div class="settings-label">🛣️ Routes</div><div class="settings-value" id="app-route-count-settings">4,180</div></div>
       </div>
       <p style="font-size:11px;color:var(--grey);text-align:center;margin-top:10px;">© 2025 Driving Test Routes Master UK & Ireland<br>Master Every Route. Pass First Time.</p>
     </div>
@@ -606,6 +610,25 @@ body{background:var(--navy);color:var(--white);font-family:'Segoe UI',Arial,sans
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+
+<!-- RESUME NAVIGATION MODAL -->
+<div class="modal" id="resume-nav-modal">
+  <div class="modal-box">
+    <div class="modal-title">🧭 Resume your route</div>
+    <div class="modal-text" id="resume-nav-text">We found a saved route in progress.</div>
+    <div style="background:var(--navy-card);border-radius:8px;padding:12px;margin-bottom:14px;border:1px solid #1e3a5f;">
+      <div style="font-size:11px;color:var(--grey);margin-bottom:4px;">Saved navigation</div>
+      <div style="font-size:13px;line-height:1.6;" id="resume-nav-detail">Route details</div>
+    </div>
+    <div class="modal-buttons" style="flex-direction:column;">
+      <button class="btn btn-red" onclick="resumeSavedNavigation('continue')">Continue from current location</button>
+      <button class="btn btn-outline" onclick="resumeSavedNavigation('rejoin')">Guide me back to the route</button>
+      <button class="btn btn-outline" onclick="resumeSavedNavigation('restart')">Restart from test centre</button>
+      <button class="btn btn-outline" style="color:var(--grey);border-color:var(--grey);" onclick="discardSavedNavigation()">Discard saved route</button>
+    </div>
+  </div>
+</div>
 
 <!-- REAL MAP NAVIGATION MODAL -->
   <div id="nav-modal">
@@ -817,9 +840,15 @@ function launchApp(user) {
   renderCentresList(testCentres);
   updateAnalytics();
   updateSettingsUI();
+  syncAppMetaCounts();
+  refreshResumeNavigationUI();
 
   // Load map immediately
   loadLeaflet();
+
+  setTimeout(() => {
+    if (getSavedNavigationState()) showResumeNavigationModal();
+  }, 350);
 }
 
 function showUserModal() {
@@ -829,6 +858,134 @@ function showUserModal() {
   document.getElementById('user-modal-device').textContent = DEVICE_ID;
   document.getElementById('user-modal').classList.add('open');
 }
+
+
+function getTotalRoutesCount() {
+  return testCentres.reduce((sum, centre) => sum + routeData.standard(centre).length + routeData.adi(centre).length, 0);
+}
+
+function syncAppMetaCounts() {
+  const centreCount = testCentres.length;
+  const routeCount = getTotalRoutesCount();
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value.toLocaleString('en-GB');
+  };
+  ['app-centre-count-auth','app-centre-count-header','app-centre-count-subtitle','app-centre-count-card','app-centre-count-settings'].forEach(id => setText(id, centreCount));
+  ['app-route-count-auth','app-route-count-header','app-route-count-card','app-route-count-settings'].forEach(id => setText(id, routeCount));
+}
+
+function getSavedNavigationState() {
+  try {
+    const raw = localStorage.getItem(NAV_RESUME_KEY);
+    if (!raw) return null;
+    const state = JSON.parse(raw);
+    if (!state || !state.savedAt) return null;
+    if (Date.now() - state.savedAt > NAV_RESUME_MAX_AGE_MS) {
+      localStorage.removeItem(NAV_RESUME_KEY);
+      return null;
+    }
+    return state;
+  } catch (e) {
+    localStorage.removeItem(NAV_RESUME_KEY);
+    return null;
+  }
+}
+
+function saveNavigationState(reason = 'autosave') {
+  if (!navCurrentCentre || !navCurrentRoute || !navCurrentSteps.length) return;
+  const modalOpen = document.getElementById('nav-modal') && document.getElementById('nav-modal').classList.contains('open');
+  const state = {
+    centreId: navCurrentCentre.id,
+    routeNum: navCurrentRoute.routeNum,
+    isAdi: !!navCurrentRoute.isAdi,
+    phase: navPhase,
+    stepIdx: navCurrentStepIdx,
+    savedAt: Date.now(),
+    reason,
+    routeName: `${navCurrentRoute.isAdi ? 'ADI Route' : 'Standard Route'} ${navCurrentRoute.routeNum}`,
+    centreName: navCurrentCentre.name,
+    modalOpen,
+    lastKnownLat: navLastKnownPosition ? navLastKnownPosition.lat : null,
+    lastKnownLng: navLastKnownPosition ? navLastKnownPosition.lng : null
+  };
+  localStorage.setItem(NAV_RESUME_KEY, JSON.stringify(state));
+  refreshResumeNavigationUI();
+}
+
+function clearSavedNavigationState() {
+  localStorage.removeItem(NAV_RESUME_KEY);
+  refreshResumeNavigationUI();
+}
+
+function refreshResumeNavigationUI() {
+  const item = document.getElementById('resume-nav-item');
+  const summary = document.getElementById('resume-nav-summary');
+  const state = getSavedNavigationState();
+  if (!item || !summary) return;
+  if (!state) {
+    item.style.display = 'none';
+    return;
+  }
+  item.style.display = 'flex';
+  const minsAgo = Math.max(1, Math.round((Date.now() - state.savedAt) / 60000));
+  summary.textContent = `${state.centreName} · ${state.routeName} · saved ${minsAgo} min ago`;
+}
+
+function showResumeNavigationModal() {
+  const state = getSavedNavigationState();
+  if (!state) {
+    showToast('No saved navigation found');
+    return;
+  }
+  const text = document.getElementById('resume-nav-text');
+  const detail = document.getElementById('resume-nav-detail');
+  if (text) text.textContent = 'We found a saved route in progress. Choose how you want to continue.';
+  if (detail) {
+    const phaseText = state.phase === 2 ? 'Driving the test route' : 'Heading to the test centre';
+    detail.innerHTML = `<strong>${state.centreName}</strong><br>${state.routeName}<br>${phaseText} · step ${Math.min((state.stepIdx || 0) + 1, 99)}`;
+  }
+  document.getElementById('resume-nav-modal').classList.add('open');
+}
+
+function resumeSavedNavigation(mode) {
+  const state = getSavedNavigationState();
+  if (!state) {
+    showToast('Saved route expired');
+    return;
+  }
+  closeModal('resume-nav-modal');
+  openRealNavigation(state.centreId, state.routeNum, state.isAdi, { resumeState: state, resumeMode: mode });
+}
+
+function discardSavedNavigation() {
+  clearSavedNavigationState();
+  closeModal('resume-nav-modal');
+  showToast('Saved route discarded');
+}
+
+function estimateStepIndexFromLocation(lat, lng) {
+  if (!navCurrentWaypoints.length) return navCurrentStepIdx || 0;
+  let bestIndex = 0;
+  let bestDist = Infinity;
+  navCurrentWaypoints.forEach((wp, idx) => {
+    const dist = Math.hypot(lat - wp.lat, lng - wp.lng);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIndex = idx;
+    }
+  });
+  const approx = Math.round((bestIndex / Math.max(1, navCurrentWaypoints.length - 1)) * Math.max(0, navCurrentSteps.length - 1));
+  return Math.max(navCurrentStepIdx || 0, Math.min(approx, Math.max(0, navCurrentSteps.length - 1)));
+}
+
+window.addEventListener('beforeunload', () => {
+  if (navCurrentCentre && navCurrentRoute) saveNavigationState('beforeunload');
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && navCurrentCentre && navCurrentRoute) saveNavigationState('hidden');
+});
 
 // ============================================================
 // TEST CENTRES DATA (all from user's list + existing data)
@@ -1067,6 +1224,11 @@ let navSpeech = null;
 let navUserMarker = null;
 let navRouteLayer = null;
 let navStarted = false;
+let navCurrentWaypoints = [];
+let navLastKnownPosition = null;
+let navAutoAdvanceLock = false;
+const NAV_RESUME_KEY = 'dtrm_nav_resume_v12';
+const NAV_RESUME_MAX_AGE_MS = 1000 * 60 * 120;
 
 // Centre-specific route waypoints (real lat/lng)
 // For each centre we generate realistic waypoints around the actual centre location
@@ -1145,33 +1307,36 @@ function getRouteSteps(centre, routeNum, isAdi) {
 }
 
 // Open the navigation modal with real map
-function openRealNavigation(centreId, routeNum, isAdi) {
+function openRealNavigation(centreId, routeNum, isAdi, options = {}) {
   const centre = testCentres.find(c => c.id === centreId);
   if (!centre) return;
-  
+
+  const resumeState = options.resumeState || null;
+  const resumeMode = options.resumeMode || 'restart';
+
   navCurrentCentre = centre;
   navCurrentRoute = { routeNum, isAdi };
   navCurrentSteps = getRouteSteps(centre, routeNum, isAdi);
-  navCurrentStepIdx = 0;
-  navPhase = 1;
-  navStarted = false;
-  
-  // Show nav modal
+  navCurrentWaypoints = getRouteWaypoints(centre, routeNum, isAdi);
+  navCurrentStepIdx = Math.max(0, Math.min(resumeState && resumeState.phase === 2 ? (resumeState.stepIdx || 0) : 0, navCurrentSteps.length - 1));
+  navPhase = (resumeState && resumeState.phase === 2 && resumeMode !== 'restart') ? 2 : 1;
+  navStarted = navPhase === 2;
+  navLastKnownPosition = resumeState && resumeState.lastKnownLat ? { lat: resumeState.lastKnownLat, lng: resumeState.lastKnownLng } : null;
+
   const modal = document.getElementById('nav-modal');
   if (modal) {
     modal.classList.add('open');
-    document.getElementById('nav-route-title').textContent = 
-      `${isAdi ? 'ADI Route' : 'Standard Route'} ${routeNum} · ${centre.name}`;
-    document.getElementById('nav-phase-label').textContent = '📍 Phase 1: Navigating to Test Centre';
-    document.getElementById('nav-instruction').textContent = 'Getting your location...';
-    document.getElementById('nav-step-counter').textContent = 'Step 0 / ' + navCurrentSteps.length;
-    
-    // Init or reset the nav map
-    setTimeout(() => initNavMap(centre, routeNum, isAdi), 200);
+    document.getElementById('nav-route-title').textContent = `${isAdi ? 'ADI Route' : 'Standard Route'} ${routeNum} · ${centre.name}`;
+    document.getElementById('nav-phase-label').textContent = navPhase === 2 ? '🛣️ Phase 2: Driving the Test Route' : '📍 Phase 1: Navigating to Test Centre';
+    document.getElementById('nav-instruction').textContent = resumeState ? 'Restoring your saved navigation...' : 'Getting your location...';
+    document.getElementById('nav-step-counter').textContent = `Step ${Math.min(navCurrentStepIdx + 1, navCurrentSteps.length)} / ${navCurrentSteps.length}`;
   }
+
+  saveNavigationState(resumeState ? 'resume-open' : 'open');
+  setTimeout(() => initNavMap(centre, routeNum, isAdi, options), 200);
 }
 
-function initNavMap(centre, routeNum, isAdi) {
+function initNavMap(centre, routeNum, isAdi, options = {}) {
   const mapEl = document.getElementById('nav-map');
   if (!mapEl) return;
   
@@ -1202,7 +1367,7 @@ function initNavMap(centre, routeNum, isAdi) {
   }).addTo(navMap).bindPopup(`<b>${centre.name}</b><br>Test Centre`);
   
   // Draw the test route on the map
-  const waypoints = getRouteWaypoints(centre, routeNum, isAdi);
+  const waypoints = navCurrentWaypoints.length ? navCurrentWaypoints : getRouteWaypoints(centre, routeNum, isAdi);
   const routeLine = L.polyline(waypoints.map(w => [w.lat, w.lng]), {
     color: isAdi ? '#f59e0b' : '#3b82f6',
     weight: 4,
@@ -1224,11 +1389,15 @@ function initNavMap(centre, routeNum, isAdi) {
   
   navMap.fitBounds(routeLine.getBounds(), {padding: [30, 30]});
   
-  // Try to get user location for phase 1
-  getUserLocationForNav(centre);
+  // Try to get user location for phase 1 or resume phase 2
+  getUserLocationForNav(centre, options);
 }
 
-function getUserLocationForNav(centre) {
+function getUserLocationForNav(centre, options = {}) {
+  if (options.resumeState && options.resumeState.phase === 2 && options.resumeMode !== 'restart') {
+    startPhase2Navigation(options.resumeState, options.resumeMode);
+    return;
+  }
   if (!navigator.geolocation) {
     startPhase2Navigation();
     return;
@@ -1297,24 +1466,32 @@ function getUserLocationForNav(centre) {
   );
 }
 
-function startPhase2Navigation() {
+function startPhase2Navigation(resumeState = null, resumeMode = 'restart') {
   navPhase = 2;
-  navCurrentStepIdx = 0;
-  
+  if (resumeState && resumeMode !== 'restart') {
+    navCurrentStepIdx = Math.max(0, Math.min(resumeState.stepIdx || 0, navCurrentSteps.length - 1));
+  } else {
+    navCurrentStepIdx = 0;
+  }
+
   document.getElementById('nav-phase-label').textContent = '🛣️ Phase 2: Driving the Test Route';
-  
+
   const centre = navCurrentCentre;
-  const { routeNum, isAdi } = navCurrentRoute;
-  
-  // Re-center map on test centre
-  if (navMap) navMap.setView([centre.lat, centre.lng], 14);
-  
-  // Show test route steps
+  if (navMap && centre) navMap.setView([centre.lat, centre.lng], 14);
+
+  document.getElementById('nav-begin-btn').style.display = 'none';
+  document.getElementById('nav-controls').style.display = 'flex';
+
+  if (resumeState && resumeMode === 'continue') {
+    document.getElementById('nav-instruction').textContent = 'Resuming route from your current location...';
+  } else if (resumeState && resumeMode === 'rejoin') {
+    document.getElementById('nav-instruction').textContent = 'Guiding you back to the nearest point on the route...';
+  }
+
   renderNavSteps();
   speakCurrentStep();
-  
-  // Start live GPS tracking
-  startGPSTracking();
+  startGPSTracking(resumeMode);
+  saveNavigationState(resumeState ? 'resume-phase2' : 'phase2');
 }
 
 function renderNavSteps() {
@@ -1325,6 +1502,7 @@ function renderNavSteps() {
   ).join('');
   
   document.getElementById('nav-instruction').textContent = navCurrentSteps[navCurrentStepIdx] || 'Route complete!';
+  saveNavigationState('render-step');
   document.getElementById('nav-step-counter').textContent = `Step ${navCurrentStepIdx + 1} / ${navCurrentSteps.length}`;
   
   // Scroll active step into view
@@ -1337,9 +1515,12 @@ function nextNavStep() {
     navCurrentStepIdx++;
     renderNavSteps();
     speakCurrentStep();
+    saveNavigationState('prev-step');
+    saveNavigationState('next-step');
   } else {
     // Route complete
     document.getElementById('nav-instruction').textContent = '✅ Route Complete! Return to test centre.';
+    clearSavedNavigationState();
     speak('Route complete. Well done!');
   }
 }
@@ -1372,19 +1553,17 @@ function speak(text) {
   window.speechSynthesis.speak(utt);
 }
 
-function startGPSTracking() {
+function startGPSTracking(resumeMode = 'restart') {
   if (!navigator.geolocation) return;
   if (navWatchId) navigator.geolocation.clearWatch(navWatchId);
-  
+
   navWatchId = navigator.geolocation.watchPosition(
     (pos) => {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
-      
-      // Update user marker
-      if (navUserMarker) {
-        navUserMarker.setLatLng([lat, lng]);
-      } else if (navMap) {
+      navLastKnownPosition = { lat, lng };
+
+      if (!navUserMarker) {
         navUserMarker = L.marker([lat, lng], {
           icon: L.divIcon({
             html: '<div style="background:#34d399;border:3px solid white;border-radius:50%;width:18px;height:18px;"></div>',
@@ -1392,9 +1571,23 @@ function startGPSTracking() {
             iconAnchor: [9, 9]
           })
         }).addTo(navMap);
+      } else {
+        navUserMarker.setLatLng([lat, lng]);
       }
-      
+
+      if (navPhase === 2 && navCurrentSteps.length) {
+        const matchedIdx = estimateStepIndexFromLocation(lat, lng);
+        if (matchedIdx > navCurrentStepIdx && !navAutoAdvanceLock) {
+          navAutoAdvanceLock = true;
+          navCurrentStepIdx = matchedIdx;
+          renderNavSteps();
+          if (resumeMode !== 'rejoin') speakCurrentStep();
+          setTimeout(() => navAutoAdvanceLock = false, 1500);
+        }
+      }
+
       if (navMap) navMap.panTo([lat, lng], {animate: true});
+      saveNavigationState('gps-update');
     },
     null,
     {enableHighAccuracy: true, maximumAge: 2000}
@@ -1418,6 +1611,7 @@ function beginTestRoute() {
   startPhase2Navigation();
   document.getElementById('nav-begin-btn').style.display = 'none';
   document.getElementById('nav-controls').style.display = 'flex';
+  saveNavigationState('begin-test-route');
 }
 
 
@@ -1762,9 +1956,21 @@ function startNavigationDirect() {
 
 function stopNavigation() {
   if (navInterval) { clearInterval(navInterval); navInterval = null; }
+  if (navWatchId) { navigator.geolocation.clearWatch(navWatchId); navWatchId = null; }
   if (window.speechSynthesis) window.speechSynthesis.cancel();
   const navBar = document.getElementById('nav-bar');
   if (navBar) navBar.classList.remove('active');
+  const modal = document.getElementById('nav-modal');
+  if (modal) modal.classList.remove('open');
+  if (navMap) { navMap.remove(); navMap = null; }
+  navCurrentCentre = null;
+  navCurrentRoute = null;
+  navCurrentSteps = [];
+  navCurrentWaypoints = [];
+  navCurrentStepIdx = 0;
+  navPhase = 1;
+  navLastKnownPosition = null;
+  clearSavedNavigationState();
   showToast('Navigation stopped');
 }
 
